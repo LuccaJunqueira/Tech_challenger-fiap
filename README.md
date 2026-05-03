@@ -1,10 +1,10 @@
-# ByteBank 🏦
+# ByteBank 
 
 O ByteBank é uma aplicação fictícia de internet banking criada para o Tech Challenge da pós-graduação em Front-End Engineering da POSTECH/FIAP.
 
 ---
 
-## 📋 Funcionalidades
+## Funcionalidades
 
 - Página inicial com apresentação do produto
 - Dashboard com saldo, entradas e saídas
@@ -14,7 +14,7 @@ O ByteBank é uma aplicação fictícia de internet banking criada para o Tech C
 
 ---
 
-## 🛠️ Tecnologias
+## Tecnologias
 
 | Tecnologia | Versão |
 |---|---|
@@ -26,7 +26,7 @@ O ByteBank é uma aplicação fictícia de internet banking criada para o Tech C
 
 ---
 
-## 🚀 Como rodar
+## Como rodar
 
 **Pré-requisitos:** Node.js 20.x ou superior
 
@@ -54,7 +54,7 @@ Acesse: http://localhost:6006
 
 ---
 
-## 📝 Observações
+## Observações
 
 - Os dados são mockados via Context API com `useState`, sem integração com back-end.
 - Os componentes de interface são desenvolvidos internamente e documentados no Storybook.
