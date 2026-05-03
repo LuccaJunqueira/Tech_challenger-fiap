@@ -57,6 +57,28 @@
   border: 1px solid color-mix(in srgb, white 8%, transparent);
 }
 
+/* Foco visível universal */
+*:focus-visible {
+  outline: 2px solid var(--color-neon-cyan);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--color-neon-cyan);
+  outline-offset: 4px;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-neon-cyan);
+  outline-offset: 2px;
+}
+
+/* Remove outline padrão do browser apenas quando focus-visible está ativo */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* --- Reset de borda usando o token correto --- */
 *,
 ::before,
@@ -100,23 +122,3 @@ nav h1 {
   overflow: visible;
   clip: auto;
 }
-
-/* Focus consistente com seu tema
-.focus\:ring-offset-background:focus {
-  --tw-ring-offset-color: var(--color-background);
-}
-
-/* Modal base */
-/* .modal {
-  border: none;
-  padding: 0;
-  margin: 0;
-  max-width: none;
-  max-height: none;
-  background: transparent;
-}
-
-.modal::backdrop {
-  background: color-mix(in srgb, var(--color-background) 60%, transparent);
-  backdrop-filter: blur(6px);
-} */ 

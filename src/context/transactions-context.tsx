@@ -11,7 +11,6 @@ import {
 import {
   initialTransactions,
   type Transaction,
-  type TransactionType,
 } from "@/data/transactions";
 
 interface TransactionsContextValue {

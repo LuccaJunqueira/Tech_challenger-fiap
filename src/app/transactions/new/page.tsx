@@ -22,7 +22,7 @@ export default function NewTransactionPage() {
     date: new Date().toISOString().split("T")[0],
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
     if (!form.type || !form.amount || !form.description || !form.category)
       return;
@@ -39,10 +39,10 @@ export default function NewTransactionPage() {
   };
 
   return (
-    <div className="p-6 max-w-lg mx-auto">
-      <h1 className="text-xl font-bold text-foreground mb-6">Nova Transação</h1>
+    <div className="p-4 sm:p-6 max-w-lg w-full mx-auto">
+      <h1 className="text-center text-lg sm:text-xl font-bold text-foreground mb-4 sm:mb-6">Nova Transação</h1>
 
-      <Card>
+      <Card className="p-4 sm:p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Tipo */}
           <div className="flex flex-col gap-1.5">
@@ -120,12 +120,12 @@ export default function NewTransactionPage() {
             required
           />
 
-          <div className="flex gap-3 pt-2">
-            <Button type="submit" variant="primary">
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <Button type="submit" variant="primary" className="w-full sm:w-auto">
               Salvar
             </Button>
-            <Link href="/transactions">
-              <Button type="button" variant="secondary">
+            <Link href="/transactions" className="w-full sm:w-auto">
+              <Button type="button" variant="secondary" className="w-full sm:w-auto">
                 Cancelar
               </Button>
             </Link>

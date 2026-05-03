@@ -11,7 +11,13 @@ export default function TransactionLayout({
     <TransactionsProvider>
       <div className="flex h-screen overflow-hidden bg-background">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 overflow-y-auto lg:ml-0"
+        >
+          {children}
+        </main>
       </div>
     </TransactionsProvider>
   );

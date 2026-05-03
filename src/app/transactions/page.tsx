@@ -67,7 +67,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <Card className="space-y-2">
           <p className="text-[10px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">
             Saldo disponível
@@ -125,12 +125,14 @@ export default function TransactionsPage() {
         </div>
 
         {/* Filtros */}
-        <div className="flex gap-2 mb-4 flex-wrap">
+        <div className="flex gap-2 mb-4 flex-wrap" role="tablist" aria-label="Filtrar transações por tipo">
           {(
             ["all", "deposit", "transfer", "payment", "withdrawal"] as const
           ).map((type) => (
             <button
               key={type}
+              role="tab"
+              aria-selected={filter === type}
               onClick={() => setFilter(type)}
               className={`px-3 py-1.5 rounded-pill text-xs font-mono font-semibold transition-colors border ${
                 filter === type
@@ -144,7 +146,14 @@ export default function TransactionsPage() {
         </div>
 
         {/* Lista */}
-        <ul className="space-y-2" aria-live="polite">
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {filtered.length === 0
+            ? 'Nenhuma transação encontrada.'
+            : `${filtered.length} transações encontradas.`
+          }
+        </div>
+
+        <ul className="space-y-2" aria-label="Lista de transações">
           {filtered.length === 0 && (
             <li className="text-sm text-muted-foreground py-4 text-center">
               Nenhuma transação encontrada.
@@ -153,14 +162,20 @@ export default function TransactionsPage() {
           {filtered.map((t) => (
             <li
               key={t.id}
-              className="flex items-center justify-between gap-4 py-3 border-b border-white/5 last:border-0"
+              className="
+                flex flex-col sm:flex-row
+                items-start sm:items-center
+                justify-between
+                gap-3 py-3
+                border-b border-white/5 last:border-0
+              "
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="flex flex-col min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
                     {t.description}
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className="text-xs text-muted-foreground">
                       {t.date}
                     </span>
@@ -171,23 +186,25 @@ export default function TransactionsPage() {
                 </div>
               </div>
 
-              <p
-                className={`font-mono font-semibold text-sm shrink-0 ${
-                  t.type === "deposit" ? "text-neon-green" : "text-neon-pink"
-                }`}
-              >
-                {t.type === "deposit" ? "+" : "-"}R${" "}
-                {t.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </p>
-
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                <p
+                  className={`font-mono font-semibold text-sm ${
+                    t.type === "deposit" ? "text-neon-green" : "text-neon-pink"
+                  }`}
+                >
+                  {t.type === "deposit" ? "+" : "-"}R${" "}
+                  {t.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </p>
                 <Link href={`/transactions/${t.id}/edit`}>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" aria-label={`Editar ${t.description}`}>
                     Editar
                   </Button>
                 </Link>
                 {confirmDelete === t.id ? (
-                  <span className="flex items-center gap-1" role="alert">
+                  <span className="flex items-center gap-1" role="alert" aria-live="assertive">
+                    <span className="sr-only">
+                      Confirmar exclusão de {t.description}?
+                    </span>
                     <Button
                       variant="danger"
                       size="sm"
@@ -208,6 +225,7 @@ export default function TransactionsPage() {
                     variant="danger"
                     size="sm"
                     onClick={() => setConfirmDelete(t.id)}
+                    aria-label={`Excluir ${t.description}`}
                   >
                     Excluir
                   </Button>
