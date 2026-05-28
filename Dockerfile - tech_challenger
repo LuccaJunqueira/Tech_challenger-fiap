@@ -1,0 +1,2 @@
+FROM luccajt/tech-challenger:latest
+// FROM ecr.amazonaws.com/tech-challenger:latest//* n
