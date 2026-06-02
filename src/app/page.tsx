@@ -24,7 +24,7 @@ export default function Home() {
             mx-4
           ">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">
-              Bem-vindo ao ByteBank
+              Bem-vindo ao ByteBank Finances
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
               Gerencie suas finanças de forma fácil e eficiente.
