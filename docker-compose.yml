@@ -1,0 +1,30 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    depends_on:
+      - backend
+    networks:
+      - bytebank-network
+
+  backend:
+    build:
+      context: ./backend/tech-challenge-2
+      dockerfile: DockerFile
+    ports:
+      - "3001:3000"
+    networks:
+      - bytebank-network
+
+networks:
+  bytebank-network:
+    driver: bridge

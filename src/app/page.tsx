@@ -29,11 +29,18 @@ export default function Home() {
             <p className="text-xs sm:text-sm text-muted-foreground">
               Gerencie suas finanças de forma fácil e eficiente.
             </p>
-            <Link href="/transactions">
-              <Button variant="primary" size="md">
-                Comece agora
-              </Button>
-            </Link>
+            <div className="flex gap-3">
+              <Link href="/login">
+                <Button variant="outline" size="md">
+                  Login
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button variant="primary" size="md">
+                  Criar conta
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </main>

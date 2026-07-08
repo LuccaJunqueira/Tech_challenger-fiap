@@ -1,9 +1,11 @@
 "use client";
 import { Menu, X } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Logo } from "@/components/ui/logo";
+import { logout } from "@/store/authSlice";
+import { useAppDispatch } from "@/store/hooks";
 
 import { SidebarItem } from "./sidebaritem";
 
@@ -23,7 +25,7 @@ const navGroups = [
     label: "SISTEMA",
     items: [
       { label: "Configurações", href: "/settings" },
-      { label: "Sair", href: "/logout" },
+      { label: "Sair" },
     ],
   },
 ];
@@ -31,6 +33,8 @@ const navGroups = [
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const dispatch = useAppDispatch();
 
   const isActive = (href: string) => {
     if (href === "/transactions/new") return pathname === "/transactions/new";
@@ -39,6 +43,11 @@ export function Sidebar() {
         pathname === "/transactions" || pathname.startsWith("/transactions/")
       );
     return pathname === href;
+  };
+
+  const handleLogout = () => {
+    dispatch(logout());
+    router.push("/login");
   };
 
   return (
@@ -95,15 +104,27 @@ export function Sidebar() {
                 {group.label}
               </p>
               <div className="flex flex-col gap-0.5">
-                {group.items.map((item) => (
-                  <SidebarItem
-                    key={item.label}
-                    label={item.label}
-                    href={item.href}
-                    active={isActive(item.href)}
-                    onClick={() => setIsOpen(false)}
-                  />
-                ))}
+                {group.items.map((item) =>
+                  item.href ? (
+                    <SidebarItem
+                      key={item.label}
+                      label={item.label}
+                      href={item.href}
+                      active={isActive(item.href)}
+                      onClick={() => setIsOpen(false)}
+                    />
+                  ) : (
+                    <SidebarItem
+                      key={item.label}
+                      label={item.label}
+                      active={false}
+                      onClick={() => {
+                        setIsOpen(false);
+                        handleLogout();
+                      }}
+                    />
+                  ),
+                )}
               </div>
             </div>
           ))}

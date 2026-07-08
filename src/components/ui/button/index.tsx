@@ -16,6 +16,7 @@ export function Button({
     'inline-flex items-center justify-center gap-2',
     'font-semibold rounded-r12',
     'transition-all duration-200',
+    'active:scale-95',
     'disabled:opacity-50 disabled:cursor-not-allowed',
   ];
 
