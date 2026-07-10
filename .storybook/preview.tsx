@@ -1,4 +1,4 @@
-import "../src/app/globals.css";
+import "../apps/bytebank-app/src/app/globals.css";
 
 import type { Preview } from "@storybook/nextjs-vite";
 

@@ -1,0 +1,7 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/transactions/[id]/edit/page": "/transactions/[id]/edit",
+  "/transactions/new/page": "/transactions/new",
+  "/transactions/page": "/transactions"
+}

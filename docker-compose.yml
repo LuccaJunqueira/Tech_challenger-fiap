@@ -1,8 +1,8 @@
 services:
-  frontend:
+  bytebank-home:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: apps/bytebank-home/Dockerfile
       target: development
     ports:
       - "3000:3000"
@@ -10,9 +10,30 @@ services:
       - .:/app
       - /app/node_modules
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001
+      # Client-side: browser acessa backend via porta mapeada no host
+      NEXT_PUBLIC_API_URL: http://localhost:3002
+      # Server-side (rewrites): dentro da rede Docker, bytebank-app é resolvível
+      NEXT_PUBLIC_APP_URL: http://bytebank-app:3001
     depends_on:
       - backend
+    networks:
+      - bytebank-network
+
+  bytebank-app:
+    build:
+      context: .
+      dockerfile: apps/bytebank-app/Dockerfile
+      target: development
+    ports:
+      - "3001:3001"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3002
+    depends_on:
+      - backend
+      - bytebank-home
     networks:
       - bytebank-network
 
@@ -21,7 +42,7 @@ services:
       context: ./backend/tech-challenge-2
       dockerfile: DockerFile
     ports:
-      - "3001:3000"
+      - "3002:3000"
     networks:
       - bytebank-network
 
