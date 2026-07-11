@@ -1,4 +1,4 @@
-name: Deploy to s3
+name: Deploy ByteBank Microfrontends to Vercel
 
 on:
   push:
@@ -6,24 +6,58 @@ on:
       - main
 
 jobs:
-  deploy:
+  build-and-test:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4.1.7
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: "Configure AWS Credentials"
-      uses: aws-actions/configure-aws-credentials@v4
-      with: 
-        aws-region: us-east-1
-        aws-access-key-id: ${{ secrets.AWS_ACCESSKEY }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRETKEY }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
 
-    - name: Copy files to S3
-      run: |
-        aws s3 sync . s3://${{ secrets.BUCKETNAME }} --delete --exclude ".git/*" --exclude ".github/*" --exclude "README.md" --exclude ".storybook/*" --exclude ".gitignore" --exclude ".vscode"
+      - name: Install dependencies (root)
+        run: npm install
 
-    - name: Invalidate Cache CDN
-      run: |
-        aws cloudfront create-invalidation --distribution-id ${{ secrets.CDN_ID }} --paths "/*"
+      - name: Run lint for bytebank-home
+        run: npm run lint --workspace=bytebank-home
+
+      - name: Run lint for bytebank-app
+        run: npm run lint --workspace=bytebank-app
+
+      - name: Build bytebank-home (production)
+        run: npm run build --workspace=bytebank-home
+
+      - name: Build bytebank-app (production)
+        run: npm run build --workspace=bytebank-app
+
+  deploy-home:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Deploy bytebank-home to Vercel
+        uses: supercharge/vercel-action@v2.0.0
+        with:
+          cwd: ./apps/bytebank-home
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_HOME_PROJECT_ID }}
+
+  deploy-app:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Deploy bytebank-app to Vercel
+        uses: supercharge/vercel-action@v2.0.0
+        with:
+          cwd: ./apps/bytebank-app
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_APP_PROJECT_ID }}
