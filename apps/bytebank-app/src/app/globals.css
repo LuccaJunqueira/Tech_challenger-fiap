@@ -11,7 +11,7 @@
   --color-bg-base:    #0F172A;
   --color-bg-panel:   #1A2540;
   --color-bg-surface: #1e293b;
-  --color-bg-card:    bg-deep;
+  --color-bg-card:    var(--color-bg-deep);
 
   /* --- Cores neon ------------ */
   --color-neon-cyan:   #22D3EE;

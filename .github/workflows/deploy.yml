@@ -23,14 +23,8 @@ jobs:
       - name: Run lint for bytebank-home
         run: npm run lint --workspace=bytebank-home
 
-      - name: Run lint for bytebank-app
-        run: npm run lint --workspace=bytebank-app
-
       - name: Build bytebank-home (production)
         run: npm run build --workspace=bytebank-home
-
-      - name: Build bytebank-app (production)
-        run: npm run build --workspace=bytebank-app
 
   deploy-home:
     needs: build-and-test
@@ -46,18 +40,3 @@ jobs:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_HOME_PROJECT_ID }}
-
-  deploy-app:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Deploy bytebank-app to Vercel
-        uses: supercharge/vercel-action@v2.0.0
-        with:
-          cwd: ./apps/bytebank-app
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_APP_PROJECT_ID }}

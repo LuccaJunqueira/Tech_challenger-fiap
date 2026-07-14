@@ -36,5 +36,11 @@ export default async function EditTransactionPage({
     notFound();
   }
 
-  return <EditForm transaction={transaction} />;
+  const transactionHistory = accountData.transactions.flatMap((t) =>
+    [t.from, t.to].filter((v): v is string => !!v && v.trim().length > 0),
+  );
+
+  return (
+    <EditForm transaction={transaction} transactionHistory={transactionHistory} />
+  );
 }

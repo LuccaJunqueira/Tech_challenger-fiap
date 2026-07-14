@@ -6,11 +6,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { CategorySuggestionField } from "@/app/transactions/category-suggestion-field";
 import { AttachmentFields } from "@/components/AttachmentFields";
 import { AriaLiveRegion } from "@/components/ui/AriaLiveRegion";
 import { useUpdateTransactionMutation } from "@/store/apiSlice";
 
-export function EditForm({ transaction }: { transaction: Transaction }) {
+export function EditForm({
+  transaction,
+  transactionHistory = [],
+}: {
+  transaction: Transaction;
+  transactionHistory?: string[];
+}) {
   const router = useRouter();
   const [updateTransaction, { isLoading: isSaving }] =
     useUpdateTransactionMutation();
@@ -124,24 +131,22 @@ export function EditForm({ transaction }: { transaction: Transaction }) {
           />
 
           {form.type === "Credit" && (
-            <Input
+            <CategorySuggestionField
               label="De (opcional)"
               id="from"
-              type="text"
-              placeholder="Remetente"
               value={form.from}
-              onChange={(e) => setForm({ ...form, from: e.target.value })}
+              onChange={(v) => setForm({ ...form, from: v })}
+              history={transactionHistory}
             />
           )}
 
           {form.type === "Debit" && (
-            <Input
+            <CategorySuggestionField
               label="Para (opcional)"
               id="to"
-              type="text"
-              placeholder="Destinatário"
               value={form.to}
-              onChange={(e) => setForm({ ...form, to: e.target.value })}
+              onChange={(v) => setForm({ ...form, to: v })}
+              history={transactionHistory}
             />
           )}
 

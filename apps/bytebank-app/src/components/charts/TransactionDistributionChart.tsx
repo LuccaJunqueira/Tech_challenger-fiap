@@ -32,6 +32,7 @@ export function TransactionDistributionChart({
       <ResponsiveContainer
         width="100%"
         height={300}
+        minWidth={300} 
         role="img"
         aria-labelledby="distribution-chart-title distribution-chart-description"
       >

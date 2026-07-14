@@ -1,0 +1,53 @@
+services:
+  bytebank-home:
+    build:
+      context: .
+      dockerfile: apps/bytebank-home/Dockerfile
+      target: runner
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3002
+      NEXT_PUBLIC_APP_URL: http://bytebank-app:3001
+    depends_on:
+      backend:
+        condition: service_healthy
+      bytebank-app:
+        condition: service_healthy
+    networks:
+      - bytebank-network
+
+  bytebank-app:
+    build:
+      context: .
+      dockerfile: apps/bytebank-app/Dockerfile
+      target: runner
+    ports:
+      - "3001:3001"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3002
+      INTERNAL_API_URL: http://backend:3000
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - bytebank-network
+
+  backend:
+    build:
+      context: ./backend/tech-challenge-2
+      dockerfile: DockerFile
+    ports:
+      - "3002:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/user', r => process.exit(r.statusCode >= 200 && r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - bytebank-network
+
+networks:
+  bytebank-network:
+    driver: bridge

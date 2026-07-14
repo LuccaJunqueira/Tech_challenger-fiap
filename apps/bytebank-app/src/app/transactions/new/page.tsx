@@ -3,8 +3,9 @@
 import { Button, Card, Input } from "@bytebank/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
+import { CategorySuggestionField } from "@/app/transactions/category-suggestion-field";
 import { AttachmentFields } from "@/components/AttachmentFields";
 import { AriaLiveRegion } from "@/components/ui/AriaLiveRegion";
 import {
@@ -33,6 +34,13 @@ export default function NewTransactionPage() {
     skip: !isAuthenticated,
   });
   const defaultAccountId = accountData?.account?.[0]?.id ?? "";
+  const transactionHistory = useMemo(
+    () =>
+      (accountData?.transactions ?? []).flatMap((t) =>
+        [t.from, t.to].filter((v): v is string => !!v && v.trim().length > 0),
+      ),
+    [accountData],
+  );
 
   const [createTransaction, { isLoading }] = useCreateTransactionMutation();
 
@@ -145,24 +153,22 @@ export default function NewTransactionPage() {
           />
 
           {form.type === "Credit" && (
-            <Input
+            <CategorySuggestionField
               label="De (opcional)"
               id="from"
-              type="text"
-              placeholder="Ex: Salário, Cliente X"
               value={form.from}
-              onChange={(e) => setForm({ ...form, from: e.target.value })}
+              onChange={(v) => setForm({ ...form, from: v })}
+              history={transactionHistory}
             />
           )}
 
           {form.type === "Debit" && (
-            <Input
+            <CategorySuggestionField
               label="Para (opcional)"
               id="to"
-              type="text"
-              placeholder="Destinatário"
               value={form.to}
-              onChange={(e) => setForm({ ...form, to: e.target.value })}
+              onChange={(v) => setForm({ ...form, to: v })}
+              history={transactionHistory}
             />
           )}
 

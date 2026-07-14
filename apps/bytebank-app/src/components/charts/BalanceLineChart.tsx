@@ -38,6 +38,7 @@ export function BalanceLineChart({
       <ResponsiveContainer
         width="100%"
         height={300}
+        minWidth={300} 
         role="img"
         aria-labelledby="balance-chart-title balance-chart-description"
       >
