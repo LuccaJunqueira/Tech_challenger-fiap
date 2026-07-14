@@ -57,8 +57,7 @@ npm install && npm run dev
 
 **Storybook:** 
 
-`npm install`
-`npm run storybook` → http://localhost:6006
+`npm install` && `npm run storybook` → http://localhost:6006
 
 ---
 
