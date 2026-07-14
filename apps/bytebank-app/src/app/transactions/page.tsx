@@ -1,21 +1,22 @@
-"use client";
-
 import type { Transaction } from "@bytebank/types";
 import { Button, Card } from "@bytebank/ui";
+import { cookies } from "next/headers";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { redirect } from "next/navigation";
 
+import { BalanceLineChart } from "@/components/charts/BalanceLineChart";
+import { TransactionDistributionChart } from "@/components/charts/TransactionDistributionChart";
+import { KpiCard } from "@/components/kpi-card";
 import { Badge } from "@/components/ui/badge";
-import {
-  useDeleteTransactionMutation,
-  useGetAccountQuery,
-} from "@/store/apiSlice";
-import { selectIsAuthenticated } from "@/store/authSlice";
-import { useAppSelector } from "@/store/hooks";
+import { getServerAccount } from "@/lib/getServerAccount";
+import { JWT_COOKIE_NAME } from "@/store/constants";
 
-type FilterType = "all" | Transaction["type"];
+import { DeleteButton } from "./delete-button";
+import { SearchBar } from "./search-bar";
+import { TransactionFilters } from "./transaction-filters";
+import { TransactionList } from "./transaction-list";
 
-const filterLabels: Record<FilterType, string> = {
+const filterLabels: Record<string, string> = {
   all: "Todos",
   Credit: "Entrada",
   Debit: "Saída",
@@ -31,56 +32,47 @@ const badgeLabel: Record<Transaction["type"], string> = {
   Debit: "↓ db",
 };
 
-function formatCurrency(value: number) {
-  return value.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+function getHighlightedText(text: string, query?: string) {
+  if (!query) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = text.split(new RegExp(`(${escaped})`, "gi"));
+  return parts.map((part, i) =>
+    part.toLowerCase() === query.toLowerCase()
+      ? (
+        <mark key={i} className="bg-neon-cyan/30 rounded px-0.5">
+          {part}
+        </mark>
+      )
+      : part,
+  );
 }
 
-export default function TransactionsPage() {
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+export default async function TransactionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    type?: string;
+    period?: string;
+    min?: string;
+    max?: string;
+    q?: string;
+    startDate?: string;
+    endDate?: string;
+  }>;
+}) {
+  const { type, period, min, max, q, startDate, endDate } = await searchParams;
+  const filter = (type ?? "all") as string;
 
-  const { data, isLoading, isError } = useGetAccountQuery(undefined, {
-    skip: !isAuthenticated,
-  });
+  const cookieStore = await cookies();
+  const token = cookieStore.get(JWT_COOKIE_NAME)?.value;
 
-  const transactions = useMemo(() => data?.transactions ?? [], [data]);
-
-  const [filter, setFilter] = useState<FilterType>("all");
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [deleteTransaction, { isLoading: isDeleting }] =
-    useDeleteTransactionMutation();
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      window.location.replace("/login");
-    }
-  }, [isAuthenticated]);
-
-  const totals = useMemo(() => {
-    const income = transactions
-      .filter((t) => t.type === "Credit")
-      .reduce((acc, t) => acc + t.value, 0);
-    const expense = transactions
-      .filter((t) => t.type === "Debit")
-      .reduce((acc, t) => acc + t.value, 0);
-    return { income, expense, balance: income + expense };
-  }, [transactions]);
-
-  const filtered = useMemo(() => {
-    if (filter === "all") return transactions;
-    return transactions.filter((t) => t.type === filter);
-  }, [transactions, filter]);
-
-  if (!isAuthenticated) return null;
-
-  if (isLoading) {
-    return (
-      <div className="p-6 flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground">Carregando transações...</p>
-      </div>
-    );
+  if (!token) {
+    redirect("/login");
   }
 
-  if (isError) {
+  const accountData = await getServerAccount(token);
+
+  if (!accountData) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[50vh]">
         <p className="text-neon-pink">
@@ -88,6 +80,59 @@ export default function TransactionsPage() {
         </p>
       </div>
     );
+  }
+
+  const transactions = accountData.transactions;
+
+  const totalIncome = transactions
+    .filter((t) => t.type === "Credit")
+    .reduce((acc, t) => acc + t.value, 0);
+  const totalExpense = transactions
+    .filter((t) => t.type === "Debit")
+    .reduce((acc, t) => acc + t.value, 0);
+  const balance = totalIncome + totalExpense;
+
+  const balanceHistory = [...transactions]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .reduce<{ date: string; balance: number }[]>((acc, t) => {
+      const lastBalance = acc.length > 0 ? acc[acc.length - 1].balance : 0;
+      acc.push({ date: t.date, balance: lastBalance + t.value });
+      return acc;
+    }, []);
+
+  const distributionData = [
+    { name: "Entradas", value: totalIncome },
+    { name: "Saídas", value: Math.abs(totalExpense) },
+  ];
+
+  const filtered = transactions.filter((t) => {
+    if (type && type !== "all" && t.type !== type) return false;
+    if (min && t.value < parseFloat(min)) return false;
+    if (max && t.value > parseFloat(max)) return false;
+    if (q && !t.from?.toLowerCase().includes(q.toLowerCase()) && !t.to?.toLowerCase().includes(q.toLowerCase())) {
+      return false;
+    }
+    if (period && period !== "all") {
+      const txDate = new Date(t.date);
+      const now = new Date();
+      const diffDays = (now.getTime() - txDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (period === "7d" && diffDays > 7) return false;
+      if (period === "30d" && diffDays > 30) return false;
+      if (period === "3m" && diffDays > 90) return false;
+      if (period === "custom") {
+        if (startDate && txDate < new Date(startDate)) return false;
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (txDate > end) return false;
+        }
+      }
+    }
+    return true;
+  });
+
+  function formatCurrency(value: number) {
+    return value.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
   }
 
   return (
@@ -110,39 +155,40 @@ export default function TransactionsPage() {
         </Link>
       </div>
 
-      {/* KPIs — estrutura visual idêntica, agora com dados da API */}
+      {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        <Card className="space-y-2">
-          <p className="text-[10px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">
-            Saldo disponível
-          </p>
-          <p
-            className={`text-3xl font-mono font-bold ${totals.balance >= 0 ? "text-neon-cyan" : "text-neon-pink"}`}
-          >
-            R$ {formatCurrency(totals.balance)}
-          </p>
+        <KpiCard
+          title="Saldo disponível"
+          value={balance}
+          variant={balance >= 0 ? "cyan" : "pink"}
+        />
+        <KpiCard
+          title="Entradas"
+          value={totalIncome}
+          variant="green"
+          subtitle={`${transactions.filter((t) => t.type === "Credit").length} transações`}
+        />
+        <KpiCard
+          title="Saídas"
+          value={Math.abs(totalExpense)}
+          variant="pink"
+          subtitle={`${transactions.filter((t) => t.type === "Debit").length} transações`}
+        />
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+        <Card className="p-4">
+          <h2 className="text-base font-semibold text-foreground mb-4">
+            Evolução do saldo
+          </h2>
+          <BalanceLineChart data={balanceHistory} />
         </Card>
-        <Card className="space-y-2">
-          <p className="text-[10px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">
-            Entradas
-          </p>
-          <p className="text-3xl font-mono font-bold text-neon-green">
-            R$ {formatCurrency(totals.income)}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {transactions.filter((t) => t.type === "Credit").length} transações
-          </p>
-        </Card>
-        <Card className="space-y-2">
-          <p className="text-[10px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">
-            Saídas
-          </p>
-          <p className="text-3xl font-mono font-bold text-neon-pink">
-            R$ {formatCurrency(Math.abs(totals.expense))}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {transactions.filter((t) => t.type === "Debit").length} transações
-          </p>
+        <Card className="p-4">
+          <h2 className="text-base font-semibold text-foreground mb-4">
+            Distribuição Crédito / Débito
+          </h2>
+          <TransactionDistributionChart data={distributionData} />
         </Card>
       </div>
 
@@ -154,58 +200,62 @@ export default function TransactionsPage() {
           </h2>
         </div>
 
-        {/* Filtros — antes: 4 tipos + all; depois: Credit/Debit + all */}
+        {/* Search */}
+        <div className="mb-4 max-w-xs">
+          <SearchBar />
+        </div>
+
+        {/* Filtros via URL */}
         <div
           className="flex gap-2 mb-4 flex-wrap"
           role="tablist"
           aria-label="Filtrar transações por tipo"
         >
-          {(["all", "Credit", "Debit"] as const).map((type) => (
-            <button
-              key={type}
+          {(["all", "Credit", "Debit"] as const).map((t) => (
+            <Link
+              key={t}
+              href={t === "all" ? "/transactions" : `/transactions?type=${t}`}
               role="tab"
-              aria-selected={filter === type}
-              onClick={() => setFilter(type)}
+              aria-selected={filter === t}
               className={`px-3 py-1.5 rounded-pill text-xs font-mono font-semibold transition-colors border ${
-                filter === type
+                filter === t
                   ? "bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30"
                   : "text-muted-foreground border-white/10 hover:text-foreground"
               }`}
             >
-              {filterLabels[type]}
-            </button>
+              {filterLabels[t]}
+            </Link>
           ))}
         </div>
 
-        {/* Lista */}
+        {/* Advanced filters */}
+        <div className="mb-4">
+          <TransactionFilters />
+        </div>
+
+        {/* Screen reader live region */}
         <div aria-live="polite" aria-atomic="true" className="sr-only">
           {filtered.length === 0
             ? "Nenhuma transação encontrada."
             : `${filtered.length} transações encontradas.`}
         </div>
 
-        <ul className="space-y-2" aria-label="Lista de transações">
-          {filtered.length === 0 && (
-            <li className="text-sm text-muted-foreground py-4 text-center">
-              Nenhuma transação encontrada.
-            </li>
-          )}
+          {/* Transaction List with infinite scroll */}
+          <TransactionList
+            key={filtered.map((t) => t.id).join(",")}
+          >
           {filtered.map((t) => (
             <li
               key={t.id}
-              className="
-                flex flex-col sm:flex-row
-                items-start sm:items-center
-                justify-between
-                gap-3 py-3
-                border-b border-white/5 last:border-0
-              "
+              className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-3 border-b border-white/5 last:border-0"
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="flex flex-col min-w-0">
-                  {/* Antes: t.description. Depois: usa from/to/accountId como fallback */}
                   <p className="text-sm font-medium text-foreground truncate">
-                    {t.from ?? t.to ?? `Conta ${t.accountId.slice(-4)}`}
+                    {getHighlightedText(
+                      t.from ?? t.to ?? `Conta ${t.accountId.slice(-4)}`,
+                      q,
+                    )}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className="text-xs text-muted-foreground">
@@ -224,58 +274,20 @@ export default function TransactionsPage() {
                     t.type === "Credit" ? "text-neon-green" : "text-neon-pink"
                   }`}
                 >
-                  {t.type === "Credit" ? "+" : "-"}R$ {formatCurrency(t.value)}
+                  {t.type === "Credit" ? "+" : "-"}R${" "}
+                  {formatCurrency(t.value)}
                 </p>
                 <Link href={`/transactions/${t.id}/edit`}>
                   <Button variant="secondary" size="sm">
                     Editar
                   </Button>
                 </Link>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="text-xs px-2 py-1 text-neon-pink"
-                  onClick={() => setDeleteTarget(t.id)}
-                >
-                  Excluir
-                </Button>
+                <DeleteButton transactionId={t.id} />
               </div>
             </li>
           ))}
-        </ul>
+        </TransactionList>
       </Card>
-
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-bg-surface border border-border rounded-xl p-6 max-w-sm w-full mx-4 space-y-4">
-            <p className="text-foreground text-sm">
-              Tem certeza que deseja excluir esta transação?
-            </p>
-            <div className="flex gap-3 justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setDeleteTarget(null)}
-                disabled={isDeleting}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                className="bg-neon-pink text-black"
-                disabled={isDeleting}
-                onClick={async () => {
-                  await deleteTransaction(deleteTarget);
-                  setDeleteTarget(null);
-                }}
-              >
-                {isDeleting ? "Excluindo..." : "Excluir"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

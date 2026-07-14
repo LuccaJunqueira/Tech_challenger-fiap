@@ -1,85 +1,59 @@
 "use client";
 
+import type { Transaction } from "@bytebank/types";
 import { Button, Card, Input } from "@bytebank/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState,useSyncExternalStore } from "react";
+import { useState } from "react";
 
 import { AttachmentFields } from "@/components/AttachmentFields";
-// Antes: addTransaction do Context API (dados mockados)
-// Depois: useCreateTransactionMutation do RTK Query (API real)
-import {
-  useCreateTransactionMutation,
-  useGetAccountQuery,
-} from "@/store/apiSlice";
-import { selectIsAuthenticated } from "@/store/authSlice";
-import { useAppSelector } from "@/store/hooks";
+import { useUpdateTransactionMutation } from "@/store/apiSlice";
 
-export default function NewTransactionPage() {
+export function EditForm({ transaction }: { transaction: Transaction }) {
   const router = useRouter();
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const isClient = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      window.location.replace("/login");
-    }
-  }, [isAuthenticated]);
-
-  // Busca a primeira conta do usuário para obter accountId
-  const { data: accountData } = useGetAccountQuery(undefined, {
-    skip: !isAuthenticated,
-  });
-  const defaultAccountId = accountData?.account?.[0]?.id ?? "";
-
-  // Antes: addTransaction do Context
-  // Depois: mutation do RTK Query que chama POST /account/transaction
-  const [createTransaction, { isLoading }] = useCreateTransactionMutation();
+  const [updateTransaction, { isLoading: isSaving }] =
+    useUpdateTransactionMutation();
 
   const [form, setForm] = useState({
-    type: "" as "Credit" | "Debit" | "",
-    value: "",
-    from: "",
-    to: "",
-    anexo: "",
-    urlAnexo: "",
+    type: transaction.type as "Credit" | "Debit" | "",
+    value: transaction.value.toString(),
+    from: transaction.from ?? "",
+    to: transaction.to ?? "",
+    anexo: transaction.anexo ?? "",
+    urlAnexo: transaction.urlAnexo ?? "",
   });
 
   const handleSubmit = async (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
-    if (!form.type || !form.value || !defaultAccountId) return;
+    if (!form.type || !form.value) return;
 
     try {
-      await createTransaction({
-        accountId: defaultAccountId,
-        type: form.type as "Credit" | "Debit",
-        value: parseFloat(form.value),
-        from: form.type === "Credit" ? form.from || undefined : undefined,
-        to: form.type === "Debit" ? form.to || undefined : undefined,
-        anexo: form.anexo || undefined,
-        urlAnexo: form.urlAnexo || undefined,
+      await updateTransaction({
+        id: transaction.id,
+        data: {
+          type: form.type as "Credit" | "Debit",
+          value: parseFloat(form.value),
+          from: form.type === "Credit" ? (form.from || undefined) : undefined,
+          to: form.type === "Debit" ? (form.to || undefined) : undefined,
+          anexo: form.anexo || undefined,
+          urlAnexo: form.urlAnexo || undefined,
+        },
       }).unwrap();
 
       router.push("/transactions");
-  
     } catch {
-      // O erro é tratado pelo extraReducer do accountSlice ou permanece silencioso
+      // erro tratado pelo RTK Query
     }
   };
 
   return (
     <div className="p-4 sm:p-6 max-w-lg w-full mx-auto">
       <h1 className="text-center text-lg sm:text-xl font-bold text-foreground mb-4 sm:mb-6">
-        Nova Transação
+        Editar Transação
       </h1>
 
       <Card className="p-4 sm:p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Tipo — antes: deposit/transfer/payment/withdrawal; depois: Credit/Debit */}
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="type"
@@ -108,7 +82,6 @@ export default function NewTransactionPage() {
             </select>
           </div>
 
-          {/* Antes: amount; depois: value (mesmo placeholder, mesmo visual) */}
           <Input
             label="Valor (R$)"
             id="value"
@@ -126,7 +99,7 @@ export default function NewTransactionPage() {
               label="De (opcional)"
               id="from"
               type="text"
-              placeholder="Ex: Salário, Cliente X"
+              placeholder="Remetente"
               value={form.from}
               onChange={(e) => setForm({ ...form, from: e.target.value })}
             />
@@ -154,7 +127,7 @@ export default function NewTransactionPage() {
               Data
             </label>
             <p className="text-foreground text-sm">
-              {isClient ? new Date().toLocaleDateString("pt-BR") : <>&nbsp;</>}
+              {new Date(transaction.date).toLocaleDateString("pt-BR")}
             </p>
           </div>
 
@@ -163,9 +136,9 @@ export default function NewTransactionPage() {
               type="submit"
               variant="primary"
               className="w-full sm:w-auto"
-              disabled={isLoading}
+              disabled={isSaving}
             >
-              {isLoading ? "Salvando..." : "Salvar"}
+              {isSaving ? "Salvando..." : "Salvar"}
             </Button>
             <Link href="/transactions">
               <Button variant="secondary">Cancelar</Button>
