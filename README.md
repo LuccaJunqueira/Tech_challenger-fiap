@@ -11,7 +11,7 @@ Duas zonas independentes via **Next.js Multizones** (aprovado pelo professor da 
 - **bytebank-home** (porta 3000) — rotas públicas: `/`, `/login`, `/register`
 - **bytebank-app** (porta 3001) — rotas autenticadas: `/transactions`
 
-`bytebank-home` faz proxy das rotas autenticadas para `bytebank-app`. A sessão é compartilhada via cookie JWT `httpOnly`.
+`bytebank-home` faz proxy das rotas autenticadas para `bytebank-app`. A sessão é compartilhada via cookie JWT.
 
 ---
 
@@ -55,7 +55,10 @@ cd backend/tech-challenge-2 && npm install && port=3002 npm start
 npm install && npm run dev
 ```
 
-**Storybook:** `npm run storybook` → http://localhost:6006
+**Storybook:** 
+
+`npm install`
+`npm run storybook` → http://localhost:6006
 
 ---
 
