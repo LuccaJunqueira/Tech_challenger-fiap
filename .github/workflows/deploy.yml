@@ -40,4 +40,5 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_HOME_PROJECT_ID }}
           working-directory: ./apps/bytebank-home   # equivalente ao "cwd" da action antiga
-          vercel-args: '--prod'                      # sem isso, ela faz deploy de PREVIEW, não produção
+          vercel-args: '--prod'
+          vercel-version: latest                      # sem isso, ela faz deploy de PREVIEW, não produção
