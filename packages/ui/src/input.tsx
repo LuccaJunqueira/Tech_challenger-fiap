@@ -7,6 +7,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export function Input({ label, error, id, className, ...props }: InputProps) {
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
+  const errorId = `${inputId}-error`;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -20,6 +21,8 @@ export function Input({ label, error, id, className, ...props }: InputProps) {
       )}
       <input
         id={inputId}
+        aria-describedby={error ? errorId : undefined}
+        aria-invalid={error ? 'true' : undefined}
         className={cn(
           'w-full px-4 py-3 rounded-[var(--radius-input)]',
           'bg-bg-surface border border-border',
@@ -32,7 +35,7 @@ export function Input({ label, error, id, className, ...props }: InputProps) {
         {...props}
       />
       {error && (
-        <span className="text-[10px] text-destructive">{error}</span>
+        <span id={errorId} className="text-[10px] text-destructive" role="alert" aria-live="polite">{error}</span>
       )}
     </div>
   );

@@ -121,7 +121,7 @@ export default function LoginPage() {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                 aria-label={showPassword ? "Esconder senha" : "Mostrar senha"}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
               </button>
             </div>
             {hasSubmitted && errors.password && (
@@ -137,7 +137,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p className="text-destructive text-sm" role="alert">
+            <p className="text-destructive text-sm" role="alert" aria-live="assertive">
               {(error as { data?: { message?: string } })?.data?.message ??
                 (error as { error?: string })?.error ??
                 "Erro ao fazer login. Verifique suas credenciais."}

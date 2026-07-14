@@ -277,12 +277,12 @@ export default async function TransactionsPage({
                   {t.type === "Credit" ? "+" : "-"}R${" "}
                   {formatCurrency(t.value)}
                 </p>
-                <Link href={`/transactions/${t.id}/edit`}>
+                <Link href={`/transactions/${t.id}/edit`} aria-label={`Editar transação de ${t.from ?? t.to ?? "Conta " + t.accountId.slice(-4)}`}>
                   <Button variant="secondary" size="sm">
                     Editar
                   </Button>
                 </Link>
-                <DeleteButton transactionId={t.id} />
+                <DeleteButton transactionId={t.id} transactionLabel={t.from ?? t.to ?? `Conta ${t.accountId.slice(-4)}`} />
               </div>
             </li>
           ))}

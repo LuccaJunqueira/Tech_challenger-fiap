@@ -3,11 +3,10 @@
 import { Button, Card, Input } from "@bytebank/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState,useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { AttachmentFields } from "@/components/AttachmentFields";
-// Antes: addTransaction do Context API (dados mockados)
-// Depois: useCreateTransactionMutation do RTK Query (API real)
+import { AriaLiveRegion } from "@/components/ui/AriaLiveRegion";
 import {
   useCreateTransactionMutation,
   useGetAccountQuery,
@@ -30,14 +29,11 @@ export default function NewTransactionPage() {
     }
   }, [isAuthenticated]);
 
-  // Busca a primeira conta do usuário para obter accountId
   const { data: accountData } = useGetAccountQuery(undefined, {
     skip: !isAuthenticated,
   });
   const defaultAccountId = accountData?.account?.[0]?.id ?? "";
 
-  // Antes: addTransaction do Context
-  // Depois: mutation do RTK Query que chama POST /account/transaction
   const [createTransaction, { isLoading }] = useCreateTransactionMutation();
 
   const [form, setForm] = useState({
@@ -49,9 +45,28 @@ export default function NewTransactionPage() {
     urlAnexo: "",
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!form.type) newErrors.type = "Selecione o tipo da transação.";
+    if (!form.value || parseFloat(form.value) <= 0)
+      newErrors.value = "Informe um valor válido maior que zero.";
+    if (!defaultAccountId)
+      newErrors.form = "Nenhuma conta disponível. Verifique sua conexão.";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
-    if (!form.type || !form.value || !defaultAccountId) return;
+    setFeedbackMessage(null);
+
+    if (!validate()) {
+      setFeedbackMessage("Corrija os erros no formulário.");
+      return;
+    }
 
     try {
       await createTransaction({
@@ -64,22 +79,23 @@ export default function NewTransactionPage() {
         urlAnexo: form.urlAnexo || undefined,
       }).unwrap();
 
+      setFeedbackMessage("Transação criada com sucesso!");
       router.push("/transactions");
-  
     } catch {
-      // O erro é tratado pelo extraReducer do accountSlice ou permanece silencioso
+      setFeedbackMessage("Erro ao criar transação. Tente novamente.");
     }
   };
 
   return (
     <div className="p-4 sm:p-6 max-w-lg w-full mx-auto">
+      <AriaLiveRegion message={feedbackMessage} id="transaction-feedback" />
+
       <h1 className="text-center text-lg sm:text-xl font-bold text-foreground mb-4 sm:mb-6">
         Nova Transação
       </h1>
 
       <Card className="p-4 sm:p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Tipo — antes: deposit/transfer/payment/withdrawal; depois: Credit/Debit */}
           <div className="flex flex-col gap-1.5">
             <label
               htmlFor="type"
@@ -94,6 +110,8 @@ export default function NewTransactionPage() {
                 setForm({ ...form, type: e.target.value as "Credit" | "Debit" })
               }
               required
+              aria-invalid={errors.type ? "true" : undefined}
+              aria-describedby={errors.type ? "type-error" : undefined}
               className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-bg-surface border border-border text-foreground text-sm focus:outline-none focus:border-neon-cyan/50 focus:ring-2 focus:ring-neon-cyan/30 transition-all"
             >
               <option value="" className="bg-bg-surface">
@@ -106,9 +124,13 @@ export default function NewTransactionPage() {
                 Saída (Débito)
               </option>
             </select>
+            {errors.type && (
+              <p id="type-error" className="text-destructive text-xs" role="alert" aria-live="polite">
+                {errors.type}
+              </p>
+            )}
           </div>
 
-          {/* Antes: amount; depois: value (mesmo placeholder, mesmo visual) */}
           <Input
             label="Valor (R$)"
             id="value"
@@ -119,6 +141,7 @@ export default function NewTransactionPage() {
             value={form.value}
             onChange={(e) => setForm({ ...form, value: e.target.value })}
             required
+            error={errors.value}
           />
 
           {form.type === "Credit" && (
@@ -157,6 +180,12 @@ export default function NewTransactionPage() {
               {isClient ? new Date().toLocaleDateString("pt-BR") : <>&nbsp;</>}
             </p>
           </div>
+
+          {errors.form && (
+            <p className="text-destructive text-xs" role="alert" aria-live="assertive">
+              {errors.form}
+            </p>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Button

@@ -50,9 +50,10 @@ export function AttachmentFields({
           <button
             type="button"
             onClick={() => handleUrlChange("")}
+            aria-label="Remover URL do anexo"
             className="absolute right-2 top-8 text-muted-foreground hover:text-foreground"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
       </div>
@@ -64,7 +65,7 @@ export function AttachmentFields({
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 text-sm text-neon-cyan hover:underline"
         >
-          <Upload className="w-4 h-4" />
+          <Upload className="w-4 h-4" aria-hidden="true" />
           Visualizar anexo
         </a>
       )}

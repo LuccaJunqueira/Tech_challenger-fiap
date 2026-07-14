@@ -24,7 +24,7 @@ export function KpiCard({
   }
 
   return (
-    <Card className="space-y-2">
+    <Card className="space-y-2" role="region" aria-label={title}>
       <p className="text-[10px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">
         {title}
       </p>

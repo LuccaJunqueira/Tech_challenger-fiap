@@ -153,7 +153,7 @@ export default function RegisterPage() {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                 aria-label={showPassword ? 'Esconder senha' : 'Mostrar senha'}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
               </button>
             </div>
 
@@ -205,7 +205,7 @@ export default function RegisterPage() {
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                 aria-label={showConfirmPassword ? 'Esconder confirmação de senha' : 'Mostrar confirmação de senha'}
               >
-                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showConfirmPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
               </button>
             </div>
             {hasSubmitted && errors.confirmPassword && (
@@ -216,7 +216,7 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <p className="text-destructive text-sm" role="alert">
+            <p className="text-destructive text-sm" role="alert" aria-live="assertive">
               {(error as { data?: { message?: string } })?.data?.message ??
                (error as { error?: string })?.error ??
                'Erro ao criar conta. Tente novamente.'}
