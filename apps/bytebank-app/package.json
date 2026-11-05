@@ -16,6 +16,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@bytebank/core": "*",
     "@bytebank/types": "*",
     "@bytebank/ui": "*",
     "@reduxjs/toolkit": "^2.12.0",
