@@ -58,9 +58,9 @@ export function TransactionDistributionChart({
               borderRadius: "8px",
             }}
             itemStyle={{ color: "var(--color-foreground)" }}
-            formatter={(value: number, name: string) => [
-              `R$ ${value.toFixed(2)}`,
-              name,
+            formatter={(value, name) => [
+              `R$ ${Number(value ?? 0).toFixed(2)}`,
+              String(name ?? ""),
             ]}
           />
           <Legend />

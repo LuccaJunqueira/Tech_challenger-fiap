@@ -68,7 +68,7 @@ export function BalanceLineChart({
               borderRadius: "8px",
             }}
             labelStyle={{ color: "var(--color-foreground)" }}
-            formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+            formatter={(value) => `R$ ${Number(value ?? 0).toFixed(2)}`}
           />
           <Line
             type="monotone"

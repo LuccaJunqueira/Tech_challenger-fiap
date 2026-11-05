@@ -7,7 +7,7 @@ export function useDebouncedSearch(delay = 300) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [inputValue, setInputValue] = useState(searchParams.get("q") ?? "");
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const isFirstRender = useRef(true);
   const paramsString = searchParams.toString();
 
