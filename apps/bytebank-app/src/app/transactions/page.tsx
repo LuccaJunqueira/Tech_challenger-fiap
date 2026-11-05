@@ -1,4 +1,7 @@
-import type { Transaction } from "@bytebank/types";
+import {
+  filterTransactions,
+  type Transaction,
+} from "@bytebank/core";
 import { Button, Card } from "@bytebank/ui";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -8,7 +11,7 @@ import { BalanceLineChart } from "@/components/charts/BalanceLineChart";
 import { TransactionDistributionChart } from "@/components/charts/TransactionDistributionChart";
 import { KpiCard } from "@/components/kpi-card";
 import { Badge } from "@/components/ui/badge";
-import { getServerAccount } from "@/lib/getServerAccount";
+import { getAccountOverview } from "@/lib/getAccountOverview";
 import { JWT_COOKIE_NAME } from "@/store/constants";
 
 import { DeleteButton } from "./delete-button";
@@ -70,9 +73,9 @@ export default async function TransactionsPage({
     redirect("/login");
   }
 
-  const accountData = await getServerAccount(token);
+  const overview = await getAccountOverview(token);
 
-  if (!accountData) {
+  if (!overview) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[50vh]">
         <p className="text-neon-pink">
@@ -82,53 +85,16 @@ export default async function TransactionsPage({
     );
   }
 
-  const transactions = accountData.transactions;
+  const { summary, balanceHistory, distribution } = overview;
 
-  const totalIncome = transactions
-    .filter((t) => t.type === "Credit")
-    .reduce((acc, t) => acc + t.value, 0);
-  const totalExpense = transactions
-    .filter((t) => t.type === "Debit")
-    .reduce((acc, t) => acc + t.value, 0);
-  const balance = totalIncome + totalExpense;
-
-  const balanceHistory = [...transactions]
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .reduce<{ date: string; balance: number }[]>((acc, t) => {
-      const lastBalance = acc.length > 0 ? acc[acc.length - 1].balance : 0;
-      acc.push({ date: t.date, balance: lastBalance + t.value });
-      return acc;
-    }, []);
-
-  const distributionData = [
-    { name: "Entradas", value: totalIncome },
-    { name: "Saídas", value: Math.abs(totalExpense) },
-  ];
-
-  const filtered = transactions.filter((t) => {
-    if (type && type !== "all" && t.type !== type) return false;
-    if (min && t.value < parseFloat(min)) return false;
-    if (max && t.value > parseFloat(max)) return false;
-    if (q && !t.from?.toLowerCase().includes(q.toLowerCase()) && !t.to?.toLowerCase().includes(q.toLowerCase())) {
-      return false;
-    }
-    if (period && period !== "all") {
-      const txDate = new Date(t.date);
-      const now = new Date();
-      const diffDays = (now.getTime() - txDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (period === "7d" && diffDays > 7) return false;
-      if (period === "30d" && diffDays > 30) return false;
-      if (period === "3m" && diffDays > 90) return false;
-      if (period === "custom") {
-        if (startDate && txDate < new Date(startDate)) return false;
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          if (txDate > end) return false;
-        }
-      }
-    }
-    return true;
+  const filtered = filterTransactions(overview.transactions, {
+    type,
+    period,
+    min: min ? Number(min) : undefined,
+    max: max ? Number(max) : undefined,
+    query: q,
+    startDate,
+    endDate,
   });
 
   function formatCurrency(value: number) {
@@ -159,20 +125,20 @@ export default async function TransactionsPage({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <KpiCard
           title="Saldo disponível"
-          value={balance}
-          variant={balance >= 0 ? "cyan" : "pink"}
+          value={summary.balance}
+          variant={summary.balance >= 0 ? "cyan" : "pink"}
         />
         <KpiCard
           title="Entradas"
-          value={totalIncome}
+          value={summary.totalIncome}
           variant="green"
-          subtitle={`${transactions.filter((t) => t.type === "Credit").length} transações`}
+          subtitle={`${overview.transactions.filter((t) => t.type === "Credit").length} transações`}
         />
         <KpiCard
           title="Saídas"
-          value={Math.abs(totalExpense)}
+          value={Math.abs(summary.totalExpense)}
           variant="pink"
-          subtitle={`${transactions.filter((t) => t.type === "Debit").length} transações`}
+          subtitle={`${overview.transactions.filter((t) => t.type === "Debit").length} transações`}
         />
       </div>
 
@@ -188,7 +154,7 @@ export default async function TransactionsPage({
           <h2 className="text-base font-semibold text-foreground mb-4">
             Distribuição Crédito / Débito
           </h2>
-          <TransactionDistributionChart data={distributionData} />
+          <TransactionDistributionChart data={distribution} />
         </Card>
       </div>
 
