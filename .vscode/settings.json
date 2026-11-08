@@ -3,5 +3,19 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "always"
+  },
+  "files.watcherExclude": {
+    "**/.next/**": true,
+    "**/node_modules/**": true,
+    "**/storybook-static/**": true,
+    "**/coverage/**": true,
+    "**/dist/**": true
+  },
+  "search.exclude": {
+    "**/.next/**": true,
+    "**/node_modules/**": true,
+    "**/storybook-static/**": true,
+    "**/coverage/**": true,
+    "**/dist/**": true
   }
 }
