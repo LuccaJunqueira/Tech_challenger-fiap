@@ -46,7 +46,11 @@ export default function RootLayout({
           Pular para o conteúdo principal
         </a>
 
-        <StoreProvider>{children}</StoreProvider>
+        <StoreProvider>
+          <main id="main-content" tabIndex={-1}>
+            {children}
+          </main>
+        </StoreProvider>
       </body>
     </html>
   );

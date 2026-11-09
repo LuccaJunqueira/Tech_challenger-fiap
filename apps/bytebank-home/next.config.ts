@@ -1,5 +1,5 @@
-import type { NextConfig } from "next";
 import { APP_ZONE_ROUTES } from "@bytebank/types";
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Transpila o pacote compartilhado @bytebank/ui (contém JSX/TSX)

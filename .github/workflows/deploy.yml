@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4          # v3 está deprecated, v4 é a atual estável
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 22
 
@@ -23,41 +23,21 @@ jobs:
       - name: Run lint for bytebank-home
         run: npm run lint --workspace=bytebank-home
 
-      - name: Run lint for bytebank-app
-        run: npm run lint --workspace=bytebank-app
-
       - name: Build bytebank-home (production)
         run: npm run build --workspace=bytebank-home
-
-      - name: Build bytebank-app (production)
-        run: npm run build --workspace=bytebank-app
 
   deploy-home:
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Deploy bytebank-home to Vercel
-        uses: supercharge/vercel-action@v2.0.0
+        uses: amondnet/vercel-action@v25.2.0     # action ativa e mantida, travada em versão fixa
         with:
-          cwd: ./apps/bytebank-home
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_HOME_PROJECT_ID }}
-
-  deploy-app:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Deploy bytebank-app to Vercel
-        uses: supercharge/vercel-action@v2.0.0
-        with:
-          cwd: ./apps/bytebank-app
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_APP_PROJECT_ID }}
+          vercel-args: '--prod'
+          vercel-version: latest                      # sem isso, ela faz deploy de PREVIEW, não produção

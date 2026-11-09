@@ -1,19 +1,26 @@
-import { configureStore } from "@reduxjs/toolkit";
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
 
 import accountReducer from "./accountSlice";
 import { apiSlice } from "./apiSlice";
 import authReducer from "./authSlice";
 
-export const store = configureStore({
-  reducer: {
-    auth: authReducer,
-    account: accountReducer,
-    [apiSlice.reducerPath]: apiSlice.reducer,
-  },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(apiSlice.middleware),
-  devTools: process.env.NODE_ENV !== "production",
+const rootReducer = combineReducers({
+  auth: authReducer,
+  account: accountReducer,
+  [apiSlice.reducerPath]: apiSlice.reducer,
 });
 
-export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
+export type RootState = ReturnType<typeof rootReducer>;
+
+export function makeStore(preloadedState?: Partial<RootState>) {
+  return configureStore({
+    reducer: rootReducer,
+    preloadedState,
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat(apiSlice.middleware),
+    devTools: process.env.NODE_ENV !== "production",
+  });
+}
+
+export type AppStore = ReturnType<typeof makeStore>;
+export type AppDispatch = AppStore["dispatch"];
