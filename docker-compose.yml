@@ -10,7 +10,6 @@ services:
       - .:/app
       - /app/node_modules
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3002
       NEXT_PUBLIC_APP_URL: http://bytebank-app:3001
     depends_on:
       backend:
@@ -31,8 +30,9 @@ services:
       - .:/app
       - /app/node_modules
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3002
       INTERNAL_API_URL: http://backend:3000
+      SESSION_SECRET: ${SESSION_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
     depends_on:
       backend:
         condition: service_healthy

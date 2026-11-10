@@ -69,3 +69,15 @@ tech-challenger01/
 - **Tag system**: `getAccount` provides `['Account']`; `createTransaction` invalidates `['Account', 'Transactions']`; `getStatement` provides `['Transactions']`
 - **Cookie auth**: JWT armazenado em cookie (`jwt_token`), não localStorage — necessário para SSR e Multizones
 <!-- END:redux-store -->
+
+<!-- BEGIN:mentor-mode -->
+# Modo mentor (Fase 4)
+
+- **Não implemente a etapa inteira.** Antes de qualquer código, explique a abordagem, liste arquivos/riscos e **pergunte**.
+- Gere **no máximo** o trecho que eu pedir explicitamente.
+- **Nunca** altere `backend/`.
+- **Não** instale dependência sem aprovação explícita.
+- **Não** altere `.gitignore` nem versione `docs/` (decisão 2).
+- Decisões de arquitetura/segurança são minhas; em dúvida, pare e pergunte.
+- Documento canônico: `docs/fase 4/implementação.md`.
+<!-- END:mentor-mode -->

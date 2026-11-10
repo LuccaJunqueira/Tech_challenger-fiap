@@ -4,6 +4,7 @@ import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { apiSlice } from "@/store/apiSlice";
 import { logout } from "@/store/authSlice";
 import { useAppDispatch } from "@/store/hooks";
 
@@ -44,9 +45,14 @@ export function Sidebar() {
     return pathname === href;
   };
 
-  const handleLogout = () => {
-    dispatch(logout());
-    window.location.href = "/login";
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      dispatch(logout());
+      dispatch(apiSlice.util.resetApiState());
+      window.location.replace("/login");
+    }
   };
 
   return (
@@ -112,7 +118,7 @@ export function Sidebar() {
                         active={false}
                         onClick={() => {
                           setIsOpen(false);
-                          handleLogout();
+                          void handleLogout();
                         }}
                       />
                     );
@@ -126,6 +132,9 @@ export function Sidebar() {
                         active={false}
                         onClick={() => {
                           setIsOpen(false);
+                          // Navegação entre zonas (multizone): a home é outra app,
+                          // então é necessário um full reload em vez do router.
+                          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
                           window.location.href = "/";
                         }}
                       />

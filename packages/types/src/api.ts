@@ -39,6 +39,15 @@ export type LoginResult = {
 
 export type LoginResponse = ApiEnvelope<LoginResult>;
 
+// ─── Respostas do BFF (sem token) ─────────────────────────────────────────────
+export type BffLoginResult = {
+  authenticated: boolean;
+};
+
+export type BffRegisterResult = {
+  user: User;
+};
+
 // ─── Account ──────────────────────────────────────────────────────────────────
 export type Account = {
   id: string;
@@ -81,6 +90,32 @@ export type GetAccountResult = {
 };
 
 export type GetAccountResponse = ApiEnvelope<GetAccountResult>;
+
+// ─── DTO seguro do BFF (sem number/cvc) ──────────────────────────────────────
+export type AccountOverviewCard = {
+  id: string;
+  accountId: string;
+  type: string;
+  isBlocked: boolean;
+  last4: string;
+  dueDate: string;
+  functions: string;
+  paymentDate: string;
+  name: string;
+};
+
+export type AccountOverviewDto = {
+  account: Account | null;
+  transactions: Transaction[];
+  cards: AccountOverviewCard[];
+  summary: {
+    totalIncome: number;
+    totalExpense: number;
+    balance: number;
+  };
+  balanceHistory: { date: string; balance: number }[];
+  distribution: { name: string; value: number }[];
+};
 
 // ─── POST /account/transaction ────────────────────────────────────────────────
 export type CreateTransactionRequest = {

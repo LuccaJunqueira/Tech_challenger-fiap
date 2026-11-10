@@ -3,7 +3,6 @@ import {
   type Transaction,
 } from "@bytebank/core";
 import { Button, Card } from "@bytebank/ui";
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -12,7 +11,7 @@ import { TransactionDistributionChart } from "@/components/charts/TransactionDis
 import { KpiCard } from "@/components/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { getAccountOverview } from "@/lib/getAccountOverview";
-import { JWT_COOKIE_NAME } from "@/store/constants";
+import { getSession } from "@/lib/session";
 
 import { DeleteButton } from "./delete-button";
 import { SearchBar } from "./search-bar";
@@ -66,14 +65,13 @@ export default async function TransactionsPage({
   const { type, period, min, max, q, startDate, endDate } = await searchParams;
   const filter = (type ?? "all") as string;
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get(JWT_COOKIE_NAME)?.value;
+  const session = await getSession();
 
-  if (!token) {
+  if (!session.backendToken) {
     redirect("/login");
   }
 
-  const overview = await getAccountOverview(token);
+  const overview = await getAccountOverview(session.backendToken);
 
   if (!overview) {
     return (

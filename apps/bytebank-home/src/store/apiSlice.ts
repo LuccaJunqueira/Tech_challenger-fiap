@@ -1,44 +1,21 @@
 import type {
+  BffLoginResult,
+  BffRegisterResult,
   CreateUserRequest,
-  CreateUserResponse,
-  CreateUserResult,
   LoginRequest,
-  LoginResponse,
-  LoginResult,
 } from "@bytebank/types";
-import {
-  createApi,
-  fetchBaseQuery,
-  retry,
-} from "@reduxjs/toolkit/query/react";
-import Cookies from "js-cookie";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-import { JWT_COOKIE_NAME } from "./constants";
+const baseQuery = fetchBaseQuery({
+  baseUrl: "/api/auth",
+});
 
-const staggeredBaseQuery = retry(
-  fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL,
-    prepareHeaders: (headers) => {
-      const token =
-        typeof window !== "undefined"
-          ? Cookies.get(JWT_COOKIE_NAME)
-          : null;
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      headers.set("Content-Type", "application/json");
-      return headers;
-    },
-  }),
-  { maxRetries: 1 },
-);
-
-const baseQueryWithReauth: typeof staggeredBaseQuery = async (
+const baseQueryWithReauth: typeof baseQuery = async (
   args,
   api,
   extraOptions,
 ) => {
-  const result = await staggeredBaseQuery(args, api, extraOptions);
+  const result = await baseQuery(args, api, extraOptions);
 
   if (result.error && result.error.status === 401) {
     api.dispatch({ type: "auth/logout" });
@@ -52,27 +29,22 @@ export const apiSlice = createApi({
   baseQuery: baseQueryWithReauth,
   tagTypes: [],
   endpoints: (builder) => ({
-    login: builder.mutation<LoginResult, LoginRequest>({
+    login: builder.mutation<BffLoginResult, LoginRequest>({
       query: (credentials) => ({
-        url: "/user/auth",
+        url: "/login",
         method: "POST",
         body: credentials,
       }),
-      transformResponse: (response: LoginResponse) => response.result,
     }),
 
-    register: builder.mutation<CreateUserResult, CreateUserRequest>({
+    register: builder.mutation<BffRegisterResult, CreateUserRequest>({
       query: (userData) => ({
-        url: "/user",
+        url: "/register",
         method: "POST",
         body: userData,
       }),
-      transformResponse: (response: CreateUserResponse) => response.result,
     }),
   }),
 });
 
-export const {
-  useLoginMutation,
-  useRegisterMutation,
-} = apiSlice;
+export const { useLoginMutation, useRegisterMutation } = apiSlice;

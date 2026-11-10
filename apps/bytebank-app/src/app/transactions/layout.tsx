@@ -1,9 +1,9 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Sidebar } from "@/components/layout/sidebar";
-import { getServerAccount } from "@/lib/getServerAccount";
-import { JWT_COOKIE_NAME } from "@/store/constants";
+import { getAccountOverview } from "@/lib/getAccountOverview";
+import { toAccountOverviewDto } from "@/lib/serializers/account";
+import { getSession } from "@/lib/session";
 import StoreProvider from "@/store/StoreProvider";
 
 export default async function TransactionLayout({
@@ -11,27 +11,28 @@ export default async function TransactionLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(JWT_COOKIE_NAME)?.value;
+  const session = await getSession();
 
-  if (!token) {
+  if (!session.backendToken) {
     redirect("/login");
   }
 
-  const initialAccountData = await getServerAccount(token);
+  const overview = await getAccountOverview(session.backendToken);
+  const initialAccountData = overview
+    ? toAccountOverviewDto(overview)
+    : undefined;
 
   return (
     <StoreProvider
       preloadedState={{
         auth: {
-          token,
           user: null,
           isAuthenticated: true,
           loading: false,
           error: null,
         },
       }}
-      initialAccountData={initialAccountData ?? undefined}
+      initialAccountData={initialAccountData}
     >
       <div className="flex h-screen overflow-hidden bg-background">
         <Sidebar />

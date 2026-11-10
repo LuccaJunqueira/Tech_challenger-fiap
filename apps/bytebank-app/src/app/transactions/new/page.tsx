@@ -33,7 +33,6 @@ export default function NewTransactionPage() {
   const { data: accountData } = useGetAccountQuery(undefined, {
     skip: !isAuthenticated,
   });
-  const defaultAccountId = accountData?.account?.[0]?.id ?? "";
   const transactionHistory = useMemo(
     () =>
       (accountData?.transactions ?? []).flatMap((t) =>
@@ -61,8 +60,6 @@ export default function NewTransactionPage() {
     if (!form.type) newErrors.type = "Selecione o tipo da transação.";
     if (!form.value || parseFloat(form.value) <= 0)
       newErrors.value = "Informe um valor válido maior que zero.";
-    if (!defaultAccountId)
-      newErrors.form = "Nenhuma conta disponível. Verifique sua conexão.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -78,7 +75,6 @@ export default function NewTransactionPage() {
 
     try {
       await createTransaction({
-        accountId: defaultAccountId,
         type: form.type as "Credit" | "Debit",
         value: parseFloat(form.value),
         from: form.type === "Credit" ? form.from || undefined : undefined,

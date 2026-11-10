@@ -1,8 +1,8 @@
-import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
-import { getServerAccount } from "@/lib/getServerAccount";
-import { JWT_COOKIE_NAME } from "@/store/constants";
+import { getAccountOverview } from "@/lib/getAccountOverview";
+import { toAccountOverviewDto } from "@/lib/serializers/account";
+import { getSession } from "@/lib/session";
 
 import { EditForm } from "./edit-form";
 
@@ -13,16 +13,15 @@ export default async function EditTransactionPage({
 }) {
   const { id } = await params;
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get(JWT_COOKIE_NAME)?.value;
+  const session = await getSession();
 
-  if (!token) {
+  if (!session.backendToken) {
     redirect("/login");
   }
 
-  const accountData = await getServerAccount(token);
+  const overview = await getAccountOverview(session.backendToken);
 
-  if (!accountData) {
+  if (!overview) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[50vh]">
         <p className="text-neon-pink">Erro ao carregar dados da conta.</p>
@@ -30,13 +29,14 @@ export default async function EditTransactionPage({
     );
   }
 
-  const transaction = accountData.transactions.find((t) => t.id === id);
+  const dto = toAccountOverviewDto(overview);
+  const transaction = dto.transactions.find((t) => t.id === id);
 
   if (!transaction) {
     notFound();
   }
 
-  const transactionHistory = accountData.transactions.flatMap((t) =>
+  const transactionHistory = dto.transactions.flatMap((t) =>
     [t.from, t.to].filter((v): v is string => !!v && v.trim().length > 0),
   );
 

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useLoginMutation } from "@/store/apiSlice";
-import { selectIsAuthenticated } from "@/store/authSlice";
+import { selectIsAuthenticated, setAuthenticated } from "@/store/authSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
 export default function LoginPage() {
@@ -43,14 +43,11 @@ export default function LoginPage() {
 
   const onLoginSubmit = async () => {
     try {
-      const result = await login({
+      await login({
         email: formData.email ?? "",
         password: formData.password ?? "",
       }).unwrap();
-      dispatch({
-        type: "auth/setCredentials",
-        payload: { token: result.token },
-      });
+      dispatch(setAuthenticated());
       // useEffect([isAuthenticated]) cuida da navegação
     } catch {
       // erro exibido via variável error do hook
@@ -138,7 +135,8 @@ export default function LoginPage() {
 
           {error && (
             <p className="text-destructive text-sm" role="alert" aria-live="assertive">
-              {(error as { data?: { message?: string } })?.data?.message ??
+              {(error as { data?: { error?: string } })?.data?.error ??
+                (error as { data?: { message?: string } })?.data?.message ??
                 (error as { error?: string })?.error ??
                 "Erro ao fazer login. Verifique suas credenciais."}
             </p>

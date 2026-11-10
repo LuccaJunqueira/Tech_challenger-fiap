@@ -1,61 +1,27 @@
 import type {
+  AccountOverviewDto,
   CreateTransactionRequest,
-  CreateTransactionResponse,
   CreateTransactionResult,
-  CreateUserRequest,
-  CreateUserResponse,
-  CreateUserResult,
   DeleteTransactionResult,
-  GetAccountResponse,
-  GetAccountResult,
-  GetStatementResponse,
-  GetStatementResult,
-  LoginRequest,
-  LoginResponse,
-  LoginResult,
   UpdateTransactionRequest,
-  UpdateTransactionResponse,
   UpdateTransactionResult,
 } from "@bytebank/types";
-import {
-  createApi,
-  fetchBaseQuery,
-  retry,
-} from "@reduxjs/toolkit/query/react";
-import Cookies from "js-cookie";
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-import { JWT_COOKIE_NAME } from "./constants";
+const baseQuery = fetchBaseQuery({
+  baseUrl: "/api",
+});
 
-const staggeredBaseQuery = retry(
-  fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL,
-    prepareHeaders: (headers) => {
-      // ANTES: localStorage.getItem("jwt_token")
-      // DEPOIS: Cookies.get(JWT_COOKIE_NAME) — acessível em SSR e Multizones
-      const token =
-        typeof window !== "undefined"
-          ? Cookies.get(JWT_COOKIE_NAME)
-          : null;
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`);
-      }
-      headers.set("Content-Type", "application/json");
-      return headers;
-    },
-  }),
-  { maxRetries: 1 },
-);
-
-const baseQueryWithReauth: typeof staggeredBaseQuery = async (
+const baseQueryWithReauth: typeof baseQuery = async (
   args,
   api,
   extraOptions,
 ) => {
-  const result = await staggeredBaseQuery(args, api, extraOptions);
+  const result = await baseQuery(args, api, extraOptions);
 
-  // Em 401, dispatches logout — o cookie é removido e o usuário redirecionado
   if (result.error && result.error.status === 401) {
     api.dispatch({ type: "auth/logout" });
+    api.dispatch({ type: "api/resetApiState" });
   }
 
   return result;
@@ -64,49 +30,25 @@ const baseQueryWithReauth: typeof staggeredBaseQuery = async (
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["Account", "Transactions", "User"],
+  tagTypes: ["Account", "Transactions"],
   endpoints: (builder) => ({
-    login: builder.mutation<LoginResult, LoginRequest>({
-      query: (credentials) => ({
-        url: "/user/auth",
-        method: "POST",
-        body: credentials,
-      }),
-      transformResponse: (response: LoginResponse) => response.result,
-    }),
-
-    register: builder.mutation<CreateUserResult, CreateUserRequest>({
-      query: (userData) => ({
-        url: "/user",
-        method: "POST",
-        body: userData,
-      }),
-      transformResponse: (response: CreateUserResponse) => response.result,
-    }),
-
-    getAccount: builder.query<GetAccountResult, void>({
+    getAccount: builder.query<AccountOverviewDto, void>({
       query: () => "/account",
-      transformResponse: (response: GetAccountResponse) => response.result,
       providesTags: ["Account"],
     }),
 
     createTransaction: builder.mutation<
       CreateTransactionResult,
-      CreateTransactionRequest
+      Omit<CreateTransactionRequest, "accountId">
     >({
       query: (transactionData) => ({
-        url: "/account/transaction",
+        url: "/transactions",
         method: "POST",
         body: transactionData,
       }),
-      transformResponse: (response: CreateTransactionResponse) => response.result,
+      transformResponse: (response: { result: CreateTransactionResult }) =>
+        response.result,
       invalidatesTags: ["Account", "Transactions"],
-    }),
-
-    getStatement: builder.query<GetStatementResult, string>({
-      query: (accountId) => `/account/${accountId}/statement`,
-      transformResponse: (response: GetStatementResponse) => response.result,
-      providesTags: ["Transactions"],
     }),
 
     updateTransaction: builder.mutation<
@@ -114,17 +56,18 @@ export const apiSlice = createApi({
       { id: string; data: UpdateTransactionRequest }
     >({
       query: ({ id, data }) => ({
-        url: `/account/transaction/${id}`,
+        url: `/transactions/${id}`,
         method: "PUT",
         body: data,
       }),
-      transformResponse: (response: UpdateTransactionResponse) => response.result,
+      transformResponse: (response: { result: UpdateTransactionResult }) =>
+        response.result,
       invalidatesTags: ["Account", "Transactions"],
     }),
 
     deleteTransaction: builder.mutation<DeleteTransactionResult, string>({
       query: (id) => ({
-        url: `/account/transaction/${id}`,
+        url: `/transactions/${id}`,
         method: "DELETE",
       }),
       invalidatesTags: ["Account", "Transactions"],
@@ -133,11 +76,8 @@ export const apiSlice = createApi({
 });
 
 export const {
-  useLoginMutation,
-  useRegisterMutation,
   useGetAccountQuery,
   useCreateTransactionMutation,
   useUpdateTransactionMutation,
   useDeleteTransactionMutation,
-  useGetStatementQuery,
 } = apiSlice;

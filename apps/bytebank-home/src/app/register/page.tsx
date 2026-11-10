@@ -217,7 +217,8 @@ export default function RegisterPage() {
 
           {error && (
             <p className="text-destructive text-sm" role="alert" aria-live="assertive">
-              {(error as { data?: { message?: string } })?.data?.message ??
+              {(error as { data?: { error?: string } })?.data?.error ??
+               (error as { data?: { message?: string } })?.data?.message ??
                (error as { error?: string })?.error ??
                'Erro ao criar conta. Tente novamente.'}
             </p>

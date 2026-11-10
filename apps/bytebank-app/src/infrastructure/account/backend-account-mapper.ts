@@ -42,7 +42,7 @@ function mapCard(c: GetAccountResult["cards"][number]): BankCard {
     last4: digits.slice(-4),
     dueDate: c.dueDate,
     functions: c.functions,
-    paymentDate: c.paymentDate,
+    paymentDate: c.paymentDate ?? "",
     name: c.name,
   };
 }

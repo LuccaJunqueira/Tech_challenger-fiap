@@ -37,7 +37,7 @@ const accountSlice = createSlice({
     builder.addMatcher(
       apiSlice.endpoints.getAccount.matchFulfilled,
       (state, { payload }) => {
-        state.accounts = payload.account;
+        state.accounts = payload.account ? [payload.account] : [];
         state.transactions = payload.transactions;
         state.cards = payload.cards;
         state.loading = false;

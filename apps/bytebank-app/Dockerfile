@@ -9,7 +9,6 @@ COPY packages/core/package.json ./packages/core/
 RUN npm ci
 COPY . .
 EXPOSE 3001
-ENV NEXT_PUBLIC_API_URL=http://backend:3000
 CMD npm run dev --workspace=bytebank-app
 
 FROM node:22-alpine AS builder
@@ -22,7 +21,6 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/core/package.json ./packages/core/
 RUN npm ci
 COPY . .
-ENV NEXT_PUBLIC_API_URL=http://backend:3000
 RUN npm run build --workspace=bytebank-app
 
 FROM node:22-alpine AS runner

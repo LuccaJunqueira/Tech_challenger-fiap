@@ -1,18 +1,17 @@
-import reducer, { logout, setCredentials } from "../authSlice";
+import reducer, { logout, setAuthenticated } from "../authSlice";
 
 describe("authSlice", () => {
-  it("setCredentials marca autenticado", () => {
-    const state = reducer(undefined, setCredentials({ token: "abc" }));
+  it("setAuthenticated marca autenticado sem guardar token", () => {
+    const state = reducer(undefined, setAuthenticated());
 
-    expect(state.token).toBe("abc");
     expect(state.isAuthenticated).toBe(true);
+    expect("token" in state).toBe(false);
   });
 
   it("logout limpa a sessão", () => {
-    const logged = reducer(undefined, setCredentials({ token: "abc" }));
+    const logged = reducer(undefined, setAuthenticated());
     const state = reducer(logged, logout());
 
-    expect(state.token).toBeNull();
     expect(state.isAuthenticated).toBe(false);
   });
 });

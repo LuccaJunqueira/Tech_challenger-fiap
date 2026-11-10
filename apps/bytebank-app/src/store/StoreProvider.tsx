@@ -1,6 +1,6 @@
 "use client";
 
-import type { GetAccountResult } from "@bytebank/types";
+import type { AccountOverviewDto } from "@bytebank/types";
 import { useEffect, useState } from "react";
 import { Provider } from "react-redux";
 
@@ -13,7 +13,7 @@ export default function StoreProvider({
   children,
 }: {
   preloadedState?: Partial<RootState>;
-  initialAccountData?: GetAccountResult;
+  initialAccountData?: AccountOverviewDto;
   children: React.ReactNode;
 }) {
   const [store] = useState<AppStore>(() => makeStore(preloadedState));
