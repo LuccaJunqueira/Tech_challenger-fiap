@@ -1,35 +1,67 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Subject } from "rxjs";
+
+import { createDebouncedQuery } from "@/lib/search-pipeline";
 
 export function useDebouncedSearch(delay = 300) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [inputValue, setInputValue] = useState(searchParams.get("q") ?? "");
-  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const isFirstRender = useRef(true);
-  const paramsString = searchParams.toString();
+  const [inputValue, setInputValueState] = useState(
+    searchParams.get("q") ?? "",
+  );
+  const subjectRef = useRef<Subject<string> | null>(null);
+  const paramsRef = useRef(searchParams.toString());
+
+  if (subjectRef.current === null) {
+    subjectRef.current = new Subject<string>();
+  }
+
+  // Mantém os params atuais sem recriar a subscription a cada navegação.
+  useEffect(() => {
+    paramsRef.current = searchParams.toString();
+  }, [searchParams]);
+
+  // Sincroniza o input apenas em navegação externa (voltar/avançar).
+  // O nosso router.replace não dispara popstate, então não há corrida
+  // entre a digitação e a URL que está sendo atualizada.
+  useEffect(() => {
+    function onPopState() {
+      const q = new URLSearchParams(window.location.search).get("q") ?? "";
+      setInputValueState(q);
+    }
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      const params = new URLSearchParams(paramsString);
-      if (inputValue) {
-        params.set("q", inputValue);
+    const subscription = createDebouncedQuery(
+      subjectRef.current!,
+      delay,
+    ).subscribe((value) => {
+      const params = new URLSearchParams(paramsRef.current);
+
+      if (value) {
+        params.set("q", value);
       } else {
         params.delete("q");
       }
-      router.replace(`/transactions?${params.toString()}`);
-    }, delay);
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [inputValue, delay, router, paramsString]);
+
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    });
+
+    return () => subscription.unsubscribe();
+  }, [delay, pathname, router]);
+
+  const setInputValue = useCallback((value: string) => {
+    setInputValueState(value);
+    subjectRef.current?.next(value);
+  }, []);
 
   return { inputValue, setInputValue };
 }

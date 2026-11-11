@@ -9,17 +9,19 @@ const roots = [
 // O core não pode conhecer framework, sessão, credencial nem UI.
 // `next/headers`, `iron-session`, `@/lib/session` e `getSession()` são o
 // caminho pelo qual a credencial vazaria para dentro do domínio (runbook 04b).
+// `rxjs` é permitido só na presentation (runbook 05 / ADR-005).
 const forbidden = [
   /from\s+["']next(\/|["'])/,
   /from\s+["']react(\/|["'])/,
   /from\s+["']@reduxjs\/toolkit/,
+  /from\s+["']rxjs(\/|["'])/,
   /from\s+["']js-cookie/,
   /from\s+["']iron-session/,
   /from\s+["']@bytebank\/(types|ui)/,
   /from\s+["']@\//,
   /from\s+["']apps\//,
-  /\brequire\s*\(\s*["'](next(\/|["'])|react(\/|["'])|@reduxjs\/toolkit|js-cookie|iron-session|@bytebank\/(types|ui)|@\/|apps\/)/,
-  /\bimport\s*\(\s*["'](next(\/|["'])|react(\/|["'])|@reduxjs\/toolkit|js-cookie|iron-session|@bytebank\/(types|ui)|@\/|apps\/)/,
+  /\brequire\s*\(\s*["'](next(\/|["'])|react(\/|["'])|@reduxjs\/toolkit|rxjs(\/|["'])|js-cookie|iron-session|@bytebank\/(types|ui)|@\/|apps\/)/,
+  /\bimport\s*\(\s*["'](next(\/|["'])|react(\/|["'])|@reduxjs\/toolkit|rxjs(\/|["'])|js-cookie|iron-session|@bytebank\/(types|ui)|@\/|apps\/)/,
   /\bgetSession\s*\(/,
 ];
 
