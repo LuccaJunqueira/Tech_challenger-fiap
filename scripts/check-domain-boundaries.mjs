@@ -6,14 +6,21 @@ const roots = [
   "packages/core/src/application",
 ];
 
+// O core não pode conhecer framework, sessão, credencial nem UI.
+// `next/headers`, `iron-session`, `@/lib/session` e `getSession()` são o
+// caminho pelo qual a credencial vazaria para dentro do domínio (runbook 04b).
 const forbidden = [
   /from\s+["']next(\/|["'])/,
   /from\s+["']react(\/|["'])/,
   /from\s+["']@reduxjs\/toolkit/,
   /from\s+["']js-cookie/,
+  /from\s+["']iron-session/,
   /from\s+["']@bytebank\/(types|ui)/,
   /from\s+["']@\//,
   /from\s+["']apps\//,
+  /\brequire\s*\(\s*["'](next(\/|["'])|react(\/|["'])|@reduxjs\/toolkit|js-cookie|iron-session|@bytebank\/(types|ui)|@\/|apps\/)/,
+  /\bimport\s*\(\s*["'](next(\/|["'])|react(\/|["'])|@reduxjs\/toolkit|js-cookie|iron-session|@bytebank\/(types|ui)|@\/|apps\/)/,
+  /\bgetSession\s*\(/,
 ];
 
 function walk(dir) {
@@ -39,4 +46,4 @@ if (violations.length > 0) {
   process.exit(1);
 }
 
-console.log("Core sem dependências de framework.");
+console.log("Core sem dependências de framework, sessão ou credencial.");

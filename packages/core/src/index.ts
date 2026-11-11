@@ -1,5 +1,6 @@
 export * from "./domain/entities/account";
 export * from "./domain/entities/transaction";
+export * from "./domain/errors";
 export * from "./domain/ports/account-repository";
 export * from "./domain/services/account-overview";
 export * from "./domain/services/category-suggestion";

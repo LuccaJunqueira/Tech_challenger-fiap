@@ -1,6 +1,9 @@
-import { makeGetAccountOverview } from "@/composition/container";
+import { mapTransaction } from "@/infrastructure/account/backend-account-mapper";
 import { fetchBackend } from "@/lib/backend-fetch";
+import { toErrorResponse } from "@/lib/error-response";
+import { getAccountOverview } from "@/lib/getAccountOverview";
 import { isAllowedOrigin } from "@/lib/same-origin";
+import { toTransactionDto } from "@/lib/serializers/account";
 import { getSession } from "@/lib/session";
 import { parseTransactionInput } from "@/lib/validation/transaction";
 
@@ -36,7 +39,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const overview = await makeGetAccountOverview().execute(session.backendToken);
+    const overview = await getAccountOverview();
     const accountId = overview?.account?.id;
 
     if (!accountId) {
@@ -66,11 +69,10 @@ export async function POST(request: Request) {
       );
     }
 
-    return Response.json({ result: transaction }, { status: response.status });
-  } catch {
-    return Response.json(
-      { error: "Serviço indisponível" },
-      { status: 502 },
-    );
+    return Response.json(toTransactionDto(mapTransaction(transaction)), {
+      status: response.status,
+    });
+  } catch (error) {
+    return toErrorResponse(error);
   }
 }

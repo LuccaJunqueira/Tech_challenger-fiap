@@ -17,7 +17,7 @@ describe("GetAccountOverview", () => {
   it("devolve o resumo calculado a partir do snapshot do repositório", async () => {
     const repo: AccountRepository = { getOverview: async () => snapshot };
 
-    const overview = await new GetAccountOverview(repo).execute("qualquer-token");
+    const overview = await new GetAccountOverview(repo).execute();
 
     expect(overview?.summary.balance).toBe(60);
   });
@@ -26,7 +26,7 @@ describe("GetAccountOverview", () => {
     const repo: AccountRepository = { getOverview: async () => null };
 
     await expect(
-      new GetAccountOverview(repo).execute("qualquer-token"),
+      new GetAccountOverview(repo).execute(),
     ).resolves.toBeNull();
   });
 });

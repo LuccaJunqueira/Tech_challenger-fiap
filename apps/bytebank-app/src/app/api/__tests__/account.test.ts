@@ -2,23 +2,17 @@
  * @jest-environment node
  */
 
-jest.mock("@/lib/session", () => ({
-  getSession: jest.fn(),
+jest.mock("@/lib/getAccountOverview", () => ({
+  getAccountOverview: jest.fn(),
 }));
 
-jest.mock("@/composition/container", () => ({
-  makeGetAccountOverview: jest.fn(),
-}));
+import { type AccountOverview,UnauthorizedError } from "@bytebank/core";
 
-import type { AccountOverview } from "@bytebank/core";
-
-import { makeGetAccountOverview } from "@/composition/container";
-import { getSession } from "@/lib/session";
+import { getAccountOverview } from "@/lib/getAccountOverview";
 
 import { GET } from "../account/route";
 
-const mockedGetSession = jest.mocked(getSession);
-const mockedMakeGetAccountOverview = jest.mocked(makeGetAccountOverview);
+const mockedGetAccountOverview = jest.mocked(getAccountOverview);
 
 const overview = {
   account: { id: "acc-1", type: "checking", userId: "user-1" },
@@ -58,41 +52,40 @@ const overview = {
   ],
 } as unknown as AccountOverview;
 
-function mockExecute(result: AccountOverview | null | Error) {
-  const execute =
-    result instanceof Error
-      ? jest.fn().mockRejectedValue(result)
-      : jest.fn().mockResolvedValue(result);
+function mockOverview(result: AccountOverview | null | Error) {
+  if (result instanceof Error) {
+    mockedGetAccountOverview.mockRejectedValue(result);
+    return;
+  }
 
-  mockedMakeGetAccountOverview.mockReturnValue({ execute } as never);
-
-  return execute;
+  mockedGetAccountOverview.mockResolvedValue(result);
 }
 
 describe("GET /api/account", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedGetSession.mockResolvedValue({ backendToken: "token-abc" } as never);
   });
 
-  it("devolve 401 sem backendToken e não chama o use case", async () => {
-    mockedGetSession.mockResolvedValue({} as never);
+  it("devolve 401 quando a credencial está ausente ou foi rejeitada", async () => {
+    mockOverview(new UnauthorizedError());
 
     const response = await GET();
 
     expect(response.status).toBe(401);
-    expect(mockedMakeGetAccountOverview).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({
+      error: "Não autenticado",
+    });
   });
 
   it("devolve o DTO sanitizado com Cache-Control no-store", async () => {
-    const execute = mockExecute(overview);
+    mockOverview(overview);
 
     const response = await GET();
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    expect(execute).toHaveBeenCalledWith("token-abc");
+    expect(mockedGetAccountOverview).toHaveBeenCalledWith();
     expect(Array.isArray(body.account)).toBe(false);
     expect(body.account).toEqual(overview.account);
     expect(body.cards[0].last4).toBe("1234");
@@ -102,7 +95,7 @@ describe("GET /api/account", () => {
   });
 
   it("devolve 502 quando o use case retorna null", async () => {
-    mockExecute(null);
+    mockOverview(null);
 
     const response = await GET();
 
@@ -113,7 +106,7 @@ describe("GET /api/account", () => {
   });
 
   it("devolve 502 genérico quando o use case lança", async () => {
-    mockExecute(new Error("boom"));
+    mockOverview(new Error("boom"));
 
     const response = await GET();
 

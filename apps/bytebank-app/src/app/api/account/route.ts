@@ -1,16 +1,10 @@
-import { makeGetAccountOverview } from "@/composition/container";
+import { toErrorResponse } from "@/lib/error-response";
+import { getAccountOverview } from "@/lib/getAccountOverview";
 import { toAccountOverviewDto } from "@/lib/serializers/account";
-import { getSession } from "@/lib/session";
 
 export async function GET() {
-  const session = await getSession();
-
-  if (!session.backendToken) {
-    return Response.json({ error: "Não autenticado" }, { status: 401 });
-  }
-
   try {
-    const overview = await makeGetAccountOverview().execute(session.backendToken);
+    const overview = await getAccountOverview();
 
     if (!overview) {
       return Response.json(
@@ -22,10 +16,7 @@ export async function GET() {
     return Response.json(toAccountOverviewDto(overview), {
       headers: { "Cache-Control": "no-store" },
     });
-  } catch {
-    return Response.json(
-      { error: "Serviço indisponível" },
-      { status: 502 },
-    );
+  } catch (error) {
+    return toErrorResponse(error);
   }
 }

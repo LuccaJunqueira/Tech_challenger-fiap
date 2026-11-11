@@ -1,8 +1,12 @@
+import {
+  type AccountOverview,
+  isBackendUnavailableError,
+  isUnauthorizedError,
+} from "@bytebank/core";
 import { notFound, redirect } from "next/navigation";
 
 import { getAccountOverview } from "@/lib/getAccountOverview";
 import { toAccountOverviewDto } from "@/lib/serializers/account";
-import { getSession } from "@/lib/session";
 
 import { EditForm } from "./edit-form";
 
@@ -13,13 +17,19 @@ export default async function EditTransactionPage({
 }) {
   const { id } = await params;
 
-  const session = await getSession();
+  let overview: AccountOverview | null = null;
 
-  if (!session.backendToken) {
-    redirect("/login");
+  try {
+    overview = await getAccountOverview();
+  } catch (error) {
+    if (isUnauthorizedError(error)) {
+      redirect("/login");
+    }
+
+    if (!isBackendUnavailableError(error)) {
+      throw error;
+    }
   }
-
-  const overview = await getAccountOverview(session.backendToken);
 
   if (!overview) {
     return (

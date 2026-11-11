@@ -3,7 +3,7 @@
 import { Button, Card, Input } from "@bytebank/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { CategorySuggestionField } from "@/app/transactions/category-suggestion-field";
 import { AttachmentFields } from "@/components/AttachmentFields";
@@ -14,6 +14,7 @@ import {
 } from "@/store/apiSlice";
 import { selectIsAuthenticated } from "@/store/authSlice";
 import { useAppSelector } from "@/store/hooks";
+import { selectTransactionHistory } from "@/store/selectors";
 
 export default function NewTransactionPage() {
   const router = useRouter();
@@ -24,22 +25,10 @@ export default function NewTransactionPage() {
     () => false,
   );
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      window.location.replace("/login");
-    }
-  }, [isAuthenticated]);
-
-  const { data: accountData } = useGetAccountQuery(undefined, {
+  useGetAccountQuery(undefined, {
     skip: !isAuthenticated,
   });
-  const transactionHistory = useMemo(
-    () =>
-      (accountData?.transactions ?? []).flatMap((t) =>
-        [t.from, t.to].filter((v): v is string => !!v && v.trim().length > 0),
-      ),
-    [accountData],
-  );
+  const transactionHistory = useAppSelector(selectTransactionHistory);
 
   const [createTransaction, { isLoading }] = useCreateTransactionMutation();
 

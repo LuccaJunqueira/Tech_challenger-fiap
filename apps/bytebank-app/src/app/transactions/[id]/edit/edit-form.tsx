@@ -24,7 +24,7 @@ export function EditForm({
 
   const [form, setForm] = useState({
     type: transaction.type as "Credit" | "Debit" | "",
-    value: transaction.value.toString(),
+    value: Math.abs(transaction.value).toString(),
     from: transaction.from ?? "",
     to: transaction.to ?? "",
     anexo: transaction.anexo ?? "",

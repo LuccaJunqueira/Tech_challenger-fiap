@@ -6,20 +6,24 @@ jest.mock("@/lib/session", () => ({
   getSession: jest.fn(),
 }));
 
-jest.mock("@/composition/container", () => ({
-  makeGetAccountOverview: jest.fn(),
+jest.mock("@/lib/getAccountOverview", () => ({
+  getAccountOverview: jest.fn(),
 }));
 
-import type { AccountOverview } from "@bytebank/core";
+import {
+  type AccountOverview,
+  BackendUnavailableError,
+  UnauthorizedError,
+} from "@bytebank/core";
 
-import { makeGetAccountOverview } from "@/composition/container";
+import { getAccountOverview } from "@/lib/getAccountOverview";
 import { getSession } from "@/lib/session";
 
 import { DELETE, PUT } from "../transactions/[id]/route";
 import { POST } from "../transactions/route";
 
 const mockedGetSession = jest.mocked(getSession);
-const mockedMakeGetAccountOverview = jest.mocked(makeGetAccountOverview);
+const mockedGetAccountOverview = jest.mocked(getAccountOverview);
 
 const VALID_ID = "0123456789abcdef01234567";
 const originalEnv = process.env;
@@ -52,10 +56,12 @@ function overviewFor(ids: string[], accountId = "acc-real") {
   } as unknown as AccountOverview;
 }
 
-function mockExecute(result: AccountOverview | null) {
-  const execute = jest.fn().mockResolvedValue(result);
-  mockedMakeGetAccountOverview.mockReturnValue({ execute } as never);
-  return execute;
+function mockOverview(result: AccountOverview | null) {
+  mockedGetAccountOverview.mockResolvedValue(result);
+}
+
+function mockOverviewError(error: Error) {
+  mockedGetAccountOverview.mockRejectedValue(error);
 }
 
 describe("BFF de transações", () => {
@@ -74,7 +80,7 @@ describe("BFF de transações", () => {
   });
 
   it("POST usa o accountId da sessão, não o do corpo", async () => {
-    mockExecute(overviewFor([], "acc-real"));
+    mockOverview(overviewFor([], "acc-real"));
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       status: 201,
@@ -104,7 +110,13 @@ describe("BFF de transações", () => {
     expect(sent.accountId).not.toBe("acc-fake");
 
     const body = await response.json();
-    expect(body.result.id).toBe("t-new");
+    expect(body).toMatchObject({
+      id: "t-new",
+      accountId: "acc-real",
+      date: "2026-01-01T00:00:00.000Z",
+    });
+    expect(body).not.toHaveProperty("result");
+    expect(body).not.toHaveProperty("message");
   });
 
   it("POST rejeita urlAnexo sem https sem chamar o backend", async () => {
@@ -146,7 +158,7 @@ describe("BFF de transações", () => {
   });
 
   it("PUT de transação de outra conta devolve 404 sem mutar", async () => {
-    mockExecute(overviewFor([]));
+    mockOverview(overviewFor([]));
 
     const response = await PUT(
       makeRequest("PUT", { type: "Credit", value: 10 }),
@@ -154,6 +166,27 @@ describe("BFF de transações", () => {
     );
 
     expect(response.status).toBe(404);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("PUT devolve 401 quando a credencial expirou", async () => {
+    mockOverviewError(new UnauthorizedError());
+
+    const response = await PUT(
+      makeRequest("PUT", { type: "Credit", value: 10 }),
+      params(VALID_ID),
+    );
+
+    expect(response.status).toBe(401);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("DELETE devolve 502 quando o backend está indisponível", async () => {
+    mockOverviewError(new BackendUnavailableError());
+
+    const response = await DELETE(makeRequest("DELETE"), params(VALID_ID));
+
+    expect(response.status).toBe(502);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -168,7 +201,7 @@ describe("BFF de transações", () => {
   });
 
   it("DELETE de transação de outra conta devolve 404 sem mutar", async () => {
-    mockExecute(overviewFor([]));
+    mockOverview(overviewFor([]));
 
     const response = await DELETE(makeRequest("DELETE"), params(VALID_ID));
 
@@ -184,7 +217,7 @@ describe("BFF de transações", () => {
   });
 
   it("DELETE com sucesso devolve 204 sem corpo", async () => {
-    mockExecute(overviewFor([VALID_ID]));
+    mockOverview(overviewFor([VALID_ID]));
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       status: 204,
@@ -201,8 +234,8 @@ describe("BFF de transações", () => {
     );
   });
 
-  it("PUT com sucesso devolve 2xx com result", async () => {
-    mockExecute(overviewFor([VALID_ID]));
+  it("PUT com sucesso devolve a transação serializada (sem envelope)", async () => {
+    mockOverview(overviewFor([VALID_ID]));
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       status: 200,
@@ -212,7 +245,7 @@ describe("BFF de transações", () => {
           id: VALID_ID,
           accountId: "acc-real",
           type: "Debit",
-          value: 20,
+          value: -20,
           date: "2026-01-01T00:00:00.000Z",
         },
       }),
@@ -225,7 +258,15 @@ describe("BFF de transações", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.result.id).toBe(VALID_ID);
+    expect(body).toMatchObject({
+      id: VALID_ID,
+      accountId: "acc-real",
+      type: "Debit",
+      value: -20,
+      date: "2026-01-01T00:00:00.000Z",
+    });
+    expect(body).not.toHaveProperty("result");
+    expect(body).not.toHaveProperty("message");
     expect(global.fetch).toHaveBeenCalledWith(
       `http://backend:3000/account/transaction/${VALID_ID}`,
       expect.objectContaining({ method: "PUT" }),

@@ -7,8 +7,8 @@ import {
 export class GetAccountOverview {
   constructor(private readonly accounts: AccountRepository) {}
 
-  async execute(token: string): Promise<AccountOverview | null> {
-    const snapshot = await this.accounts.getOverview(token);
+  async execute(): Promise<AccountOverview | null> {
+    const snapshot = await this.accounts.getOverview();
     return snapshot ? buildAccountOverview(snapshot) : null;
   }
 }

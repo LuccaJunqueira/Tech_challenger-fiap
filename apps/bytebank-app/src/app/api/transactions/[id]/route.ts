@@ -1,6 +1,9 @@
-import { makeGetAccountOverview } from "@/composition/container";
+import { mapTransaction } from "@/infrastructure/account/backend-account-mapper";
 import { fetchBackend } from "@/lib/backend-fetch";
+import { toErrorResponse } from "@/lib/error-response";
+import { getAccountOverview } from "@/lib/getAccountOverview";
 import { isAllowedOrigin } from "@/lib/same-origin";
+import { toTransactionDto } from "@/lib/serializers/account";
 import { getSession } from "@/lib/session";
 import {
   isTransactionId,
@@ -20,8 +23,8 @@ function mapBackendError(status: number, message: string): Response {
   return Response.json({ error: "Serviço indisponível" }, { status: 502 });
 }
 
-async function getOwnedTransaction(id: string, token: string) {
-  const overview = await makeGetAccountOverview().execute(token);
+async function getOwnedTransaction(id: string) {
+  const overview = await getAccountOverview();
   return overview?.transactions.find((transaction) => transaction.id === id);
 }
 
@@ -53,7 +56,7 @@ export async function PUT(
   }
 
   try {
-    const owned = await getOwnedTransaction(id, session.backendToken);
+    const owned = await getOwnedTransaction(id);
 
     if (!owned) {
       return Response.json(
@@ -79,20 +82,20 @@ export async function PUT(
     }
 
     const json = await response.json().catch(() => null);
+    const transaction = json?.result;
 
-    if (!json) {
+    if (!transaction) {
       return Response.json(
         { error: "Resposta inválida do backend" },
         { status: 502 },
       );
     }
 
-    return Response.json(json, { status: response.status });
-  } catch {
-    return Response.json(
-      { error: "Serviço indisponível" },
-      { status: 502 },
-    );
+    return Response.json(toTransactionDto(mapTransaction(transaction)), {
+      status: response.status,
+    });
+  } catch (error) {
+    return toErrorResponse(error);
   }
 }
 
@@ -117,7 +120,7 @@ export async function DELETE(
   }
 
   try {
-    const owned = await getOwnedTransaction(id, session.backendToken);
+    const owned = await getOwnedTransaction(id);
 
     if (!owned) {
       return Response.json(
@@ -139,10 +142,7 @@ export async function DELETE(
     }
 
     return new Response(null, { status: 204 });
-  } catch {
-    return Response.json(
-      { error: "Serviço indisponível" },
-      { status: 502 },
-    );
+  } catch (error) {
+    return toErrorResponse(error);
   }
 }

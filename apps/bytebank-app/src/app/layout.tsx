@@ -3,8 +3,6 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { JetBrains_Mono, Sora } from "next/font/google";
 
-import StoreProvider from "@/store/StoreProvider";
-
 const sora = Sora({
   subsets: ["latin"],
   variable: "--font-sans",
@@ -46,7 +44,7 @@ export default function RootLayout({
           Pular para o conteúdo principal
         </a>
 
-        <StoreProvider>{children}</StoreProvider>
+        {children}
       </body>
     </html>
   );

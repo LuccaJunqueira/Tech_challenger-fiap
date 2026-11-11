@@ -1,5 +1,8 @@
 import {
+  type AccountOverview,
   filterTransactions,
+  isBackendUnavailableError,
+  isUnauthorizedError,
   type Transaction,
 } from "@bytebank/core";
 import { Button, Card } from "@bytebank/ui";
@@ -11,7 +14,6 @@ import { TransactionDistributionChart } from "@/components/charts/TransactionDis
 import { KpiCard } from "@/components/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { getAccountOverview } from "@/lib/getAccountOverview";
-import { getSession } from "@/lib/session";
 
 import { DeleteButton } from "./delete-button";
 import { SearchBar } from "./search-bar";
@@ -65,13 +67,19 @@ export default async function TransactionsPage({
   const { type, period, min, max, q, startDate, endDate } = await searchParams;
   const filter = (type ?? "all") as string;
 
-  const session = await getSession();
+  let overview: AccountOverview | null = null;
 
-  if (!session.backendToken) {
-    redirect("/login");
+  try {
+    overview = await getAccountOverview();
+  } catch (error) {
+    if (isUnauthorizedError(error)) {
+      redirect("/login");
+    }
+
+    if (!isBackendUnavailableError(error)) {
+      throw error;
+    }
   }
-
-  const overview = await getAccountOverview(session.backendToken);
 
   if (!overview) {
     return (

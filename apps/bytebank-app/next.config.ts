@@ -11,6 +11,10 @@ const securityHeaders = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 
+const privateCacheHeaders = [
+  { key: "Cache-Control", value: "private, no-store" },
+];
+
 function buildHeaders() {
   return [
     ...securityHeaders,
@@ -37,7 +41,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 
   async headers() {
-    return [{ source: "/:path*", headers: buildHeaders() }];
+    return [
+      { source: "/:path*", headers: buildHeaders() },
+      { source: "/transactions", headers: privateCacheHeaders },
+      { source: "/transactions/:path*", headers: privateCacheHeaders },
+      { source: "/api/:path*", headers: privateCacheHeaders },
+    ];
   },
 };
 

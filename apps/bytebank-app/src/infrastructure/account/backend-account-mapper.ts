@@ -17,7 +17,9 @@ export function mapAccountResponse(dto: GetAccountResult): AccountSnapshot {
   };
 }
 
-function mapTransaction(t: GetAccountResult["transactions"][number]): Transaction {
+export function mapTransaction(
+  t: GetAccountResult["transactions"][number],
+): Transaction {
   return {
     id: t.id,
     accountId: t.accountId,
