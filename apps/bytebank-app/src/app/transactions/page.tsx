@@ -9,12 +9,11 @@ import { Button, Card } from "@bytebank/ui";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { BalanceLineChart } from "@/components/charts/BalanceLineChart";
-import { TransactionDistributionChart } from "@/components/charts/TransactionDistributionChart";
 import { KpiCard } from "@/components/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { getAccountOverview } from "@/lib/getAccountOverview";
 
+import { ChartsSection } from "./charts-section";
 import { DeleteButton } from "./delete-button";
 import { SearchBar } from "./search-bar";
 import { TransactionFilters } from "./transaction-filters";
@@ -149,20 +148,10 @@ export default async function TransactionsPage({
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-        <Card className="p-4">
-          <h2 className="text-base font-semibold text-foreground mb-4">
-            Evolução do saldo
-          </h2>
-          <BalanceLineChart data={balanceHistory} />
-        </Card>
-        <Card className="p-4">
-          <h2 className="text-base font-semibold text-foreground mb-4">
-            Distribuição Crédito / Débito
-          </h2>
-          <TransactionDistributionChart data={distribution} />
-        </Card>
-      </div>
+      <ChartsSection
+        balanceHistory={balanceHistory}
+        distribution={distribution}
+      />
 
       {/* Transações recentes */}
       <Card>
@@ -249,7 +238,11 @@ export default async function TransactionsPage({
                   {t.type === "Credit" ? "+" : "-"}R${" "}
                   {formatCurrency(t.value)}
                 </p>
-                <Link href={`/transactions/${t.id}/edit`} aria-label={`Editar transação de ${t.from ?? t.to ?? "Conta " + t.accountId.slice(-4)}`}>
+                <Link
+                  href={`/transactions/${t.id}/edit`}
+                  prefetch={false}
+                  aria-label={`Editar transação de ${t.from ?? t.to ?? "Conta " + t.accountId.slice(-4)}`}
+                >
                   <Button variant="secondary" size="sm">
                     Editar
                   </Button>
