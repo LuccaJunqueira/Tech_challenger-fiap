@@ -11,26 +11,26 @@
   "dependencies": {
     "@bytebank/types": "*",
     "@bytebank/ui": "*",
-    "@reduxjs/toolkit": "^2.12.0",
+    "@reduxjs/toolkit": "^2.14.0",
     "lucide-react": "latest",
-    "next": "^16.4.5",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "react-redux": "^9.3.0"
+    "next": "^16.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-redux": "^9.3.1"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.2.4",
+    "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "autoprefixer": "^10.5.0",
+    "autoprefixer": "^10.6.2",
     "eslint": "^9",
-    "eslint-config-next": "^16.4.5",
+    "eslint-config-next": "^16.4.6",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-simple-import-sort": "^13.0.0",
-    "postcss": "^8.5.10",
-    "prettier": "^3.8.3",
-    "prettier-plugin-tailwindcss": "^0.7.2",
+    "postcss": "^8.5.32",
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.2.4",
     "typescript": "^5"
   }
