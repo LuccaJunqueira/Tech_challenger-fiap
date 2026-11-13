@@ -28,7 +28,7 @@
     "packages/*"
   ],
   "devDependencies": {
-    "concurrently": "^9.1.2",
+    "concurrently": "^10.0.7",
     "cross-env": "^7.0.3"
   }
 }
