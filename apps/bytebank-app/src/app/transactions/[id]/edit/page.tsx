@@ -6,6 +6,7 @@ import {
 import { notFound, redirect } from "next/navigation";
 
 import { getAccountOverview } from "@/lib/getAccountOverview";
+import { homeUrl } from "@/lib/home-url";
 import { toAccountOverviewDto } from "@/lib/serializers/account";
 
 import { EditForm } from "./edit-form";
@@ -23,7 +24,7 @@ export default async function EditTransactionPage({
     overview = await getAccountOverview();
   } catch (error) {
     if (isUnauthorizedError(error)) {
-      redirect("/login");
+      redirect(homeUrl("/login"));
     }
 
     if (!isBackendUnavailableError(error)) {

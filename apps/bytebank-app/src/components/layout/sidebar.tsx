@@ -4,6 +4,7 @@ import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { homeUrl } from "@/lib/home-url";
 import { apiSlice } from "@/store/apiSlice";
 import { logout } from "@/store/authSlice";
 import { useAppDispatch } from "@/store/hooks";
@@ -51,7 +52,7 @@ export function Sidebar() {
     } finally {
       dispatch(logout());
       dispatch(apiSlice.util.resetApiState());
-      window.location.replace("/login");
+      window.location.replace(homeUrl("/login"));
     }
   };
 

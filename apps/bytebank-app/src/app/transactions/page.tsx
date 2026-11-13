@@ -12,6 +12,7 @@ import { redirect } from "next/navigation";
 import { KpiCard } from "@/components/kpi-card";
 import { Badge } from "@/components/ui/badge";
 import { getAccountOverview } from "@/lib/getAccountOverview";
+import { homeUrl } from "@/lib/home-url";
 
 import { ChartsSection } from "./charts-section";
 import { DeleteButton } from "./delete-button";
@@ -72,7 +73,7 @@ export default async function TransactionsPage({
     overview = await getAccountOverview();
   } catch (error) {
     if (isUnauthorizedError(error)) {
-      redirect("/login");
+      redirect(homeUrl("/login"));
     }
 
     if (!isBackendUnavailableError(error)) {

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 
 import { Sidebar } from "@/components/layout/sidebar";
 import { getAccountOverview } from "@/lib/getAccountOverview";
+import { homeUrl } from "@/lib/home-url";
 import { toAccountOverviewDto } from "@/lib/serializers/account";
 import type { RootState } from "@/store";
 import { buildAccountPreloadedState } from "@/store/serverSnapshot";
@@ -23,7 +24,7 @@ export default async function TransactionLayout({
     overview = await getAccountOverview();
   } catch (error) {
     if (isUnauthorizedError(error)) {
-      redirect("/login");
+      redirect(homeUrl("/login"));
     }
 
     if (!isBackendUnavailableError(error)) {

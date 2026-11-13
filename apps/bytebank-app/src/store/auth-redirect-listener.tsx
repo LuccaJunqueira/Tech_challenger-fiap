@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { homeUrl } from "@/lib/home-url";
+
 import { selectIsAuthenticated } from "./authSlice";
 import { useAppSelector } from "./hooks";
 
@@ -16,7 +18,7 @@ export function AuthRedirectListener() {
   useEffect(() => {
     if (!isAuthenticated) {
       // Full reload, não router: /login vive na bytebank-home (multizone)
-      window.location.replace("/login");
+      window.location.replace(homeUrl("/login"));
     }
   }, [isAuthenticated]);
 

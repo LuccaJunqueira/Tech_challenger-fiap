@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -45,6 +46,7 @@ jobs:
           SESSION_SECRET: ci-placeholder-32-caracteres-000000
           ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
           INTERNAL_API_URL: http://backend:3000
+          BACKEND_PROXY_SECRET: ci-placeholder
 
   deploy-home:
     needs: build-and-test
@@ -60,4 +62,27 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_HOME_PROJECT_ID }}
           vercel-args: '--prod'
-          vercel-version: latest
+          vercel-version: '65.15.0'
+
+  deploy-app:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy bytebank-app to Vercel
+        uses: amondnet/vercel-action@v25.2.0
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_APP_PROJECT_ID }}
+          vercel-args: '--prod'
+          vercel-version: '65.15.0'
+
+  deploy-backend:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
