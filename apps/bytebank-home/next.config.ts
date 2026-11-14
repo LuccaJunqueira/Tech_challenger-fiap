@@ -36,11 +36,15 @@ const nextConfig: NextConfig = {
   async rewrites() {
     const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001";
     return [
-      // Rotas da bytebank-app
-      ...APP_ZONE_ROUTES.map((route) => ({
-        source: `${route}/:path*`,
-        destination: `${base}${route}/:path*`,
-      })),
+      // Rotas da bytebank-app.
+      // A regra exata vem antes da catch-all: sem ela, `/transactions` casa com
+      // `/transactions/:path*` e o destino ganha barra no fim. A app responde
+      // 308 para `/transactions` com Location relativo, o navegador resolve na
+      // home e entra em loop.
+      ...APP_ZONE_ROUTES.flatMap((route) => [
+        { source: route, destination: `${base}${route}` },
+        { source: `${route}/:path*`, destination: `${base}${route}/:path*` },
+      ]),
       // Assets da bytebank-app (prefixo separado para não conflitar com rotas)
       {
         source: "/transactions-static/:path*",
