@@ -4,10 +4,11 @@ services:
       context: .
       dockerfile: apps/bytebank-home/Dockerfile
       target: runner
+      args:
+        # Congelado no build: precisa ser o nome do serviço na rede do compose.
+        NEXT_PUBLIC_APP_URL: http://bytebank-app:3001
     ports:
       - "3000:3000"
-    environment:
-      NEXT_PUBLIC_APP_URL: http://bytebank-app:3001
     depends_on:
       backend:
         condition: service_healthy
@@ -27,9 +28,23 @@ services:
       INTERNAL_API_URL: http://backend:3000
       SESSION_SECRET: ${SESSION_SECRET}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      # O BFF em produção recusa subir sem o segredo do proxy.
+      BACKEND_PROXY_SECRET: ${BACKEND_PROXY_SECRET}
     depends_on:
       backend:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3001/api/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     networks:
       - bytebank-network
 

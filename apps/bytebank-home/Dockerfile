@@ -21,6 +21,10 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/core/package.json ./packages/core/
 RUN npm ci
 COPY . .
+# NEXT_PUBLIC_* é congelado no build; precisa vir como ARG para os rewrites
+# da home apontarem para o container da app (e não para localhost).
+ARG NEXT_PUBLIC_APP_URL=http://bytebank-app:3001
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 RUN npm run build --workspace=bytebank-home
 
 FROM node:22-alpine AS runner
