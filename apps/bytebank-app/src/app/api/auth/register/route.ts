@@ -3,6 +3,9 @@ import type { CreateUserResponse } from "@bytebank/types";
 import { fetchBackend } from "@/lib/backend-fetch";
 import { isAllowedOrigin } from "@/lib/same-origin";
 
+// Cold start do Render free: a função precisa durar mais que o timeout do BFF.
+export const maxDuration = 60;
+
 const USERNAME_MIN = 3;
 const USERNAME_MAX = 80;
 const EMAIL_MAX = 254;

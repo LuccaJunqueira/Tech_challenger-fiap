@@ -1,6 +1,14 @@
 "use client";
 
-import { Button, Card, cn, Input, Logo, useFormValidation } from '@bytebank/ui';
+import {
+  Button,
+  Card,
+  cn,
+  getErrorMessage,
+  Input,
+  Logo,
+  useFormValidation,
+} from '@bytebank/ui';
 import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -9,6 +17,15 @@ import { useEffect, useState } from 'react';
 import { useRegisterMutation } from '@/store/apiSlice';
 import { selectIsAuthenticated } from '@/store/authSlice';
 import { useAppSelector } from '@/store/hooks';
+
+const REGISTER_ERROR_FALLBACK = 'Erro ao criar conta. Tente novamente.';
+// 502/503/504 no cadastro = o backend (Render free) ainda está acordando.
+const SERVER_WAKING_MESSAGE =
+  'O servidor está acordando. Aguarde alguns segundos e tente novamente.';
+const SERVER_WAKING_HINT =
+  'O servidor está acordando. Isso pode levar até 45 segundos.';
+// O Render free leva ~30-60 s no cold start; o aviso evita "Cadastrando..." mudo.
+const SERVER_WAKING_HINT_DELAY_MS = 8_000;
 
 function getPasswordStrength(p: string) {
   let strength = 0;
@@ -25,6 +42,7 @@ export default function RegisterPage() {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showWakingHint, setShowWakingHint] = useState(false);
 
   const [register, { isLoading, error }] = useRegisterMutation();
 
@@ -57,6 +75,16 @@ export default function RegisterPage() {
     }
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const timer = window.setTimeout(
+      () => setShowWakingHint(true),
+      SERVER_WAKING_HINT_DELAY_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [isLoading]);
+
   const passwordStrength = getPasswordStrength(formData.password || '');
   const passwordStrengthColor =
     passwordStrength === 0
@@ -68,6 +96,8 @@ export default function RegisterPage() {
           : 'bg-neon-green';
 
   const onRegisterSubmit = async () => {
+    setShowWakingHint(false);
+
     try {
       await register({
         username: formData.username ?? '',
@@ -217,10 +247,24 @@ export default function RegisterPage() {
 
           {error && (
             <p className="text-destructive text-sm" role="alert" aria-live="assertive">
-              {(error as { data?: { error?: string } })?.data?.error ??
-               (error as { data?: { message?: string } })?.data?.message ??
-               (error as { error?: string })?.error ??
-               'Erro ao criar conta. Tente novamente.'}
+              {getErrorMessage(error, {
+                fallback: REGISTER_ERROR_FALLBACK,
+                statusMessages: {
+                  502: SERVER_WAKING_MESSAGE,
+                  503: SERVER_WAKING_MESSAGE,
+                  504: SERVER_WAKING_MESSAGE,
+                },
+              })}
+            </p>
+          )}
+
+          {isLoading && showWakingHint && (
+            <p
+              className="text-muted-foreground text-sm"
+              role="status"
+              aria-live="polite"
+            >
+              {SERVER_WAKING_HINT}
             </p>
           )}
 

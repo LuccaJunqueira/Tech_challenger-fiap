@@ -76,8 +76,31 @@ Documentação técnica detalhada de cada decisão em `docs/`.
 
 ## Deploy
 
-Demonstração do requisito de cloud: https://bytebank-home-fiap.vercel.app
-**Backend roda só localmente** — use Docker para testar funcionalidades de verdade.
+- **Home (entrada):** https://bytebank-home-fiap.vercel.app
+- **App:** https://bytebank-app-steel.vercel.app
+- **Backend (público, com guarda):** https://bytebank-backend-n1up.onrender.com
+
+O backend roda no Render (plano free), que **hiberna após inatividade**. Antes de
+usar a demo, aqueça o `/health` e aguarde o `200`:
+
+```bash
+curl -fsS https://bytebank-backend-n1up.onrender.com/health
+```
+
+Sem o aquecimento, a primeira requisição pode levar **30-60 s** enquanto o
+Render inicia. O BFF espera até **45 s** por essa resposta e, depois de alguns
+segundos, as telas de login e cadastro avisam "O servidor está acordando". Se
+ainda assim vier **502**, aguarde e tente de novo. Depois do primeiro acesso, o
+backend responde normalmente.
+
+**Conta demo:** `demo@bytebank.test` / `demo123456`
+
+O banco é **em memória**: a conta demo e as transações somem quando o Render
+hiberna. Para recriar, rode o seed apontando para a home:
+
+```bash
+HOME_URL=https://bytebank-home-fiap.vercel.app node scripts/seed-demo.mjs
+```
 
 ---
 

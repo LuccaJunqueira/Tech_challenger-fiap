@@ -2,6 +2,9 @@ import { toErrorResponse } from "@/lib/error-response";
 import { getAccountOverview } from "@/lib/getAccountOverview";
 import { toAccountOverviewDto } from "@/lib/serializers/account";
 
+// Cold start do Render free: a função precisa durar mais que o timeout do BFF.
+export const maxDuration = 60;
+
 export async function GET() {
   try {
     const overview = await getAccountOverview();

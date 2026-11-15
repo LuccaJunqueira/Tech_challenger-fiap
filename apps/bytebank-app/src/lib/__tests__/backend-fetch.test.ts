@@ -59,4 +59,34 @@ describe("fetchBackend", () => {
 
     process.env = { ...process.env, NODE_ENV: nodeEnv };
   });
+
+  it("usa 45s em produção sem BACKEND_TIMEOUT_MS (cobre o cold start do Render)", async () => {
+    const timeoutSpy = jest.spyOn(AbortSignal, "timeout");
+    process.env = {
+      ...process.env,
+      NODE_ENV: "production",
+      INTERNAL_API_URL: "http://backend:3000",
+      BACKEND_PROXY_SECRET: "segredo-de-teste",
+    };
+    delete process.env.BACKEND_TIMEOUT_MS;
+
+    await fetchBackend("/account");
+
+    expect(timeoutSpy).toHaveBeenCalledWith(45_000);
+    timeoutSpy.mockRestore();
+  });
+
+  it("respeita BACKEND_TIMEOUT_MS quando configurado", async () => {
+    const timeoutSpy = jest.spyOn(AbortSignal, "timeout");
+    process.env = {
+      ...process.env,
+      INTERNAL_API_URL: "http://backend:3000",
+      BACKEND_TIMEOUT_MS: "12000",
+    };
+
+    await fetchBackend("/account");
+
+    expect(timeoutSpy).toHaveBeenCalledWith(12_000);
+    timeoutSpy.mockRestore();
+  });
 });

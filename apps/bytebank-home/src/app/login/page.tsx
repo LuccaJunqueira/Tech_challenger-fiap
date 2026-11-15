@@ -1,6 +1,14 @@
 "use client";
 
-import { Button, Card, cn, Input, Logo, useFormValidation } from "@bytebank/ui";
+import {
+  Button,
+  Card,
+  cn,
+  getErrorMessage,
+  Input,
+  Logo,
+  useFormValidation,
+} from "@bytebank/ui";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -9,10 +17,21 @@ import { useLoginMutation } from "@/store/apiSlice";
 import { selectIsAuthenticated, setAuthenticated } from "@/store/authSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 
+const LOGIN_ERROR_FALLBACK =
+  "Erro ao fazer login. Verifique suas credenciais.";
+// 502/503/504 no login = o backend (Render free) ainda está acordando.
+const SERVER_WAKING_MESSAGE =
+  "O servidor está acordando. Aguarde alguns segundos e tente novamente.";
+const SERVER_WAKING_HINT =
+  "O servidor está acordando. Isso pode levar até 45 segundos.";
+// O Render free leva ~30-60 s no cold start; o aviso evita "Entrando..." mudo.
+const SERVER_WAKING_HINT_DELAY_MS = 8_000;
+
 export default function LoginPage() {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const [showPassword, setShowPassword] = useState(false);
+  const [showWakingHint, setShowWakingHint] = useState(false);
 
   const [login, { isLoading, error }] = useLoginMutation();
 
@@ -41,7 +60,19 @@ export default function LoginPage() {
     }
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const timer = window.setTimeout(
+      () => setShowWakingHint(true),
+      SERVER_WAKING_HINT_DELAY_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [isLoading]);
+
   const onLoginSubmit = async () => {
+    setShowWakingHint(false);
+
     try {
       await login({
         email: formData.email ?? "",
@@ -135,10 +166,24 @@ export default function LoginPage() {
 
           {error && (
             <p className="text-destructive text-sm" role="alert" aria-live="assertive">
-              {(error as { data?: { error?: string } })?.data?.error ??
-                (error as { data?: { message?: string } })?.data?.message ??
-                (error as { error?: string })?.error ??
-                "Erro ao fazer login. Verifique suas credenciais."}
+              {getErrorMessage(error, {
+                fallback: LOGIN_ERROR_FALLBACK,
+                statusMessages: {
+                  502: SERVER_WAKING_MESSAGE,
+                  503: SERVER_WAKING_MESSAGE,
+                  504: SERVER_WAKING_MESSAGE,
+                },
+              })}
+            </p>
+          )}
+
+          {isLoading && showWakingHint && (
+            <p
+              className="text-muted-foreground text-sm"
+              role="status"
+              aria-live="polite"
+            >
+              {SERVER_WAKING_HINT}
             </p>
           )}
 

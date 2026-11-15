@@ -7,6 +7,9 @@ import { toTransactionDto } from "@/lib/serializers/account";
 import { getSession } from "@/lib/session";
 import { parseTransactionInput } from "@/lib/validation/transaction";
 
+// Cold start do Render free: a função precisa durar mais que o timeout do BFF.
+export const maxDuration = 60;
+
 function mapBackendError(status: number, message: string): Response {
   if (status === 400 || status === 422) {
     return Response.json({ error: message }, { status: 400 });

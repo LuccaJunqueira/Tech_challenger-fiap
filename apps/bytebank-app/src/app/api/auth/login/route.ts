@@ -4,6 +4,9 @@ import { fetchBackend } from "@/lib/backend-fetch";
 import { isAllowedOrigin } from "@/lib/same-origin";
 import { getSession } from "@/lib/session";
 
+// Cold start do Render free: a função precisa durar mais que o timeout do BFF.
+export const maxDuration = 60;
+
 const EMAIL_MAX = 254;
 const PASSWORD_MAX = 128;
 
