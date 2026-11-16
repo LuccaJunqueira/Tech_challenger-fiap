@@ -272,7 +272,7 @@ O ganho real vem de tirar o chunk do Recharts do caminho crítico. Como os gráf
 - **Categoria de transação** é apenas sugerida no cliente; a API não possui o campo.
 - **Cold start:** o Render (plano free) hiberna após inatividade. A primeira requisição pode levar 30–45 s. O BFF espera até 45 s e as telas de login/cadastro avisam que o servidor está acordando.
 - **Banco em memória:** os dados são perdidos na hibernação; crie a conta novamente em `/register` após o cold start.
-- **Hot reload:** o loop de Fast Refresh ocorre apenas em `npm run dev`; o build de produção e o compose de produção não são afetados.
+- **Hot reload:** em Next 16.4.5 + Turbopack no fluxo multizone, o `npm run dev` podia recarregar `/transactions` em loop sem arquivo mudar. Em 16.4.6 o loop não reproduziu (Turbopack e Webpack, direto e via home). O build de produção e o compose de produção não foram afetados. Se o loop voltar, use o build de produção ou o compose de produção; a causa raiz não foi confirmada.
 - **RAM no desenvolvimento:** em hosts com ~2 GB, o `next dev` com Turbopack pode registrar `Out of memory` ao persistir cache. As rotas continuam respondendo, mas para avaliar use o build de produção ou o compose de produção.
 - **Vulnerabilidades de desenvolvimento:** `npm audit --omit=dev` retorna **0**. O restante (moderado/baixo) está em ferramentas de build e teste (Jest, ESLint, Storybook/Vite) e não entra no runtime de produção. Atualizações *major* dessas ferramentas ficam para depois da entrega.
 - **GitHub Actions:** alguns workflows ainda usam actions que rodam em Node 20 (depreciado). As atualizações estão abertas como PRs do Dependabot e devem ser mergeadas uma a uma, com CI verde.
@@ -286,4 +286,4 @@ O ganho real vem de tirar o chunk do Recharts do caminho crítico. Como os gráf
 - Rate limiting no BFF.
 - Testes E2E com Playwright.
 - Observabilidade (logs estruturados e métricas).
-- Investigar o loop de Fast Refresh em `next dev` (só desenvolvimento; não bloqueia a entrega).
+- Validar o loop de Fast Refresh em 16.4.6; se voltar, usar `next dev --webpack` como plano B (só desenvolvimento; não bloqueia a entrega).
