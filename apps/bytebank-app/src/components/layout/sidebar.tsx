@@ -11,7 +11,10 @@ import { useAppDispatch } from "@/store/hooks";
 
 import { SidebarItem } from "./sidebaritem";
 
-const navGroups = [
+type NavItem = { label: string; href?: string; prefetch?: boolean };
+type NavGroup = { label: string; items: NavItem[] };
+
+const navGroups: NavGroup[] = [
   {
     label: "PRINCIPAL",
     items: [
@@ -26,7 +29,7 @@ const navGroups = [
   {
     label: "SISTEMA",
     items: [
-      { label: "Configurações", href: "/settings" },
+      { label: "Configurações", href: "/settings", prefetch: false },
       { label: "Sair" },
     ],
   },
@@ -148,6 +151,7 @@ export function Sidebar() {
                       label={item.label}
                       href={item.href}
                       active={isActive(item.href)}
+                      prefetch={item.prefetch}
                       onClick={() => setIsOpen(false)}
                     />
                   );

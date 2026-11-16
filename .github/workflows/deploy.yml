@@ -48,6 +48,9 @@ jobs:
           INTERNAL_API_URL: http://backend:3000
           BACKEND_PROXY_SECRET: ci-placeholder
 
+      - name: Build Storybook
+        run: npm run build-storybook
+
   deploy-home:
     needs: build-and-test
     runs-on: ubuntu-latest

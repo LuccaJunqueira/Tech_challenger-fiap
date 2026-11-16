@@ -4,7 +4,28 @@ Internet banking fictício desenvolvido para o Tech Challenge da pós-graduaçã
 
 **Demo:** [bytebank-home-fiap.vercel.app](https://bytebank-home-fiap.vercel.app)
 
-> Detalhes de arquitetura, decisões e histórico de desenvolvimento: [Contexto_da_Fase_04.md](./Contexto_da_Fase_04.md)
+---
+
+## Visão geral
+
+O ByteBank é um internet banking fictício com duas zonas Next.js independentes: a **home** (rotas públicas) e o **app** (rotas autenticadas). A Fase 4 entrega:
+
+- microfrontends com Next.js Multizones;
+- BFF que concentra o acesso ao backend e mantém o JWT fora do navegador;
+- Clean Architecture em `packages/core` (domínio e casos de uso puros) com adapters no app;
+- performance: gráficos carregados sob demanda e menos prefetch;
+- Docker Compose (dev e produção local), deploy na Vercel e no Render.
+
+A entrada da demo é a home. As rotas autenticadas são servidas pelo app através dos rewrites da home.
+
+### Funcionalidades
+
+- Cadastro, login e sessão via cookie selado `HttpOnly`
+- Dashboard com gráficos (evolução de saldo e distribuição por tipo) carregados sob demanda no cliente
+- Transações: CRUD completo, filtros, busca e scroll infinito controlados pela URL
+- Anexos por URL + descrição
+- Sugestão de categoria por autocomplete do histórico + heurística (não persistida)
+- Acessibilidade WCAG AA: teclado, leitores de tela e contraste validado
 
 ---
 
@@ -14,9 +35,55 @@ Next.js 16 · React 19 · TypeScript 5 · Tailwind CSS 4 · Redux Toolkit / RTK 
 
 ---
 
-## Como rodar
+## Arquitetura
 
-### Docker (recomendado)
+```text
+Navegador
+   │  home (entrada) — porta 3000 em dev
+   ├── /, /login, /register ......... bytebank-home
+   └── /transactions/*, /api/* ...... rewrite → bytebank-app (porta 3001)
+                                             │
+                                             │ BFF (Route Handlers)
+                                             │ cookie bytebank_session (HttpOnly)
+                                             ▼
+                                     guarda nginx (Render)
+                                             │ header x-bff-secret
+                                             ▼
+                                     backend Node/Express + Mongo em memória
+```
+
+- **Multizones:** home (3000) e app (3001) são aplicações Next.js independentes. A home é a entrada; ela reescreve `/transactions/*` e `/api/*` para o app.
+- **BFF:** os Route Handlers do app são a única porta para o backend. O navegador chama `/api/*` na origem da home; o BFF lê o cookie, chama o backend e devolve apenas o necessário.
+- **Sessão:** o cookie `bytebank_session` é selado (`iron-session`), `HttpOnly`, `SameSite=Lax`, com TTL de 20 min. O JWT real do backend (12 h) fica dentro do cookie selado e nunca chega ao JavaScript.
+- **Estado do servidor:** RTK Query é a fonte única. O `accountSlice` foi removido; não há cópia de transações em slice.
+- **Clean Architecture:** `packages/core/src/domain` (entidades, ports e serviços puros) → `application/use-cases` → `apps/bytebank-app/src/infrastructure` (adapters HTTP) → apresentação (componentes e hooks). Sem over-engineering: só as fronteiras que o projeto usa.
+- **RxJS:** fica na apresentação (`lib/search-pipeline.ts` e `hooks/useDebouncedSearch.ts`), nunca no domínio. `debounceTime` + `distinctUntilChanged` transformam a digitação em uma única atualização de URL.
+- **Rota de demonstração do 404:** o item “Configurações” do menu aponta para uma rota sem página e usa o `not-found.tsx` customizado da home (404 intencional). O link não faz prefetch para não gerar 404 no DevTools.
+
+---
+
+## Decisões de arquitetura e segurança
+
+| Tema | Decisão |
+| --- | --- |
+| Microfrontends | Next.js Multizones (Single SPA/Module Federation conflitam com App Router) |
+| Fronteiras | Clean Architecture com ports/adapters em `packages/core`; repository + adapter |
+| Sessão | BFF + cookie selado `bytebank_session`, `HttpOnly`, TTL 20 min |
+| Token | JWT de 12 h só no servidor; o navegador nunca vê o token |
+| Estado do servidor | RTK Query; `accountSlice` removido |
+| RxJS | Só na apresentação (busca com debounce) |
+| Testes | Jest para app/BFF; Vitest/addon-vitest só para Storybook |
+| Backend imutável | BFF mascara cartão (só `last4`) e não devolve senha |
+| Guarda | nginx bloqueia `GET /user` e `/docs` (404), exige `x-bff-secret` e roda non-root |
+| Documentação | `docs/` não versionado; as decisões que o avaliador precisa estão neste README |
+
+---
+
+## Como rodar localmente
+
+> **Para avaliar ou demonstrar, use o build de produção ou o compose de produção.** O `npm run dev` é só para desenvolvimento: em hosts com pouca RAM o Turbopack pode falhar ao persistir cache.
+
+### Docker de desenvolvimento
 
 Pré-requisitos: Docker e Docker Compose.
 
@@ -30,19 +97,6 @@ docker compose up --build
 Acesse **http://localhost:3000**. O backend sobe junto, exposto em `http://localhost:3002`.
 
 Para parar: `docker compose down`.
-
-### Produção local
-
-Build otimizado (sem hot reload), servido com `next start`:
-
-```bash
-docker compose -f docker-compose.prod.yml up --build
-```
-
-- Home: http://localhost:3000
-- App: http://localhost:3001
-
-O compose de produção usa o mesmo `.env`. A URL interna do app (`NEXT_PUBLIC_APP_URL`) é passada como *build arg*: os rewrites da home são congelados no build e precisam apontar para o serviço `bytebank-app`.
 
 ### Sem Docker
 
@@ -59,6 +113,37 @@ npm ci
 npm run dev
 ```
 
+> `npm run dev` na raiz sobe **home e app**, não o backend. O backend precisa do Terminal 1 (ou de `npm run dev:backend`, que usa a porta 3002).
+
+### Build de produção local (recomendado para avaliar)
+
+É o mesmo comportamento do deploy, sem hot reload. Use este caminho para avaliar ou gravar o vídeo.
+
+```bash
+# Terminal 1 — backend
+cd backend/tech-challenge-2
+npm start
+
+# Terminal 2 — build + start das duas zonas
+npm ci
+npm run build:home
+npm run build:app
+npm start
+```
+
+Acesse **http://localhost:3000**. Não rode `next dev` e `next start` ao mesmo tempo: os dois usam o mesmo `.next`.
+
+### Produção local com Docker (recomendado para avaliar)
+
+```bash
+docker compose -f docker-compose.prod.yml up --build
+```
+
+- Home: http://localhost:3000
+- App: http://localhost:3001
+
+O compose de produção usa o mesmo `.env`. A URL interna do app (`NEXT_PUBLIC_APP_URL`) é passada como *build arg*: os rewrites da home são congelados no build e precisam apontar para o serviço `bytebank-app`.
+
 ### Storybook
 
 ```bash
@@ -67,7 +152,11 @@ npm run storybook        # http://localhost:6006
 npm run build-storybook  # build estático em storybook-static/
 ```
 
-### Variáveis de ambiente
+As stories ficam em `apps/bytebank-app` (3) e em `packages/ui` (3).
+
+---
+
+## Variáveis de ambiente
 
 O `.env.example` (versionado) lista os nomes. As principais:
 
@@ -81,63 +170,78 @@ O `.env.example` (versionado) lista os nomes. As principais:
 | `NEXT_PUBLIC_HOME_URL` | build do app | redirect absoluto para o login da home |
 | `BACKEND_TIMEOUT_MS` | opcional | sobrescreve o timeout (default: 45 s em produção) |
 
-A home não precisa de `SESSION_SECRET`: o BFF vive no app.
+A home não precisa de `SESSION_SECRET`: o BFF vive no app. Não existe `NEXT_PUBLIC_API_URL` nesta arquitetura — o navegador nunca fala com o backend. `MONGO_URI` também não é usada: o Mongo roda em memória.
 
 ---
 
-## Funcionalidades
-
-- Cadastro, login e sessão via JWT em cookie
-- Dashboard com gráficos (evolução de saldo e distribuição por tipo) carregados sob demanda no cliente
-- Transações: CRUD completo, filtros, busca e scroll infinito controlados pela URL
-- Anexos por URL + descrição
-- Sugestão de categoria por autocomplete do histórico + heurística (não persistida)
-- Acessibilidade WCAG AA: teclado, leitores de tela e contraste validado
-
----
-
-## Conta demo
-
-| E-mail | Senha |
-| --- | --- |
-| `demo@bytebank.test` | `demo123456` |
-
-A conta é **fictícia** e existe apenas para demonstração.
-
-O banco do backend é **em memória**: a conta e as transações somem quando o Render hiberna. Para recriar:
+## Scripts
 
 ```bash
-HOME_URL=https://bytebank-home-fiap.vercel.app node scripts/seed-demo.mjs
+npm run dev             # home + app (não sobe o backend)
+npm run dev:home        # apenas a home (3000)
+npm run dev:app         # apenas o app (3001)
+npm run dev:backend     # backend na porta 3002
+npm run lint            # ESLint + fronteiras de domínio
+npm run lint:boundaries # regra de dependência entre camadas
+npm run typecheck       # TypeScript em todos os workspaces
+npm test                # Jest (app/BFF)
+npm run test:coverage   # Jest com cobertura
+npm run build:home      # build de produção da home
+npm run build:app       # build de produção do app
+npm start               # next start das duas zonas (após build)
+npm run storybook       # Storybook em http://localhost:6006
+npm run build-storybook # build estático do Storybook
 ```
-
----
-
-## Arquitetura
-
-Duas zonas independentes via **Next.js Multizones**:
-
-- **bytebank-home** (porta 3000) — rotas públicas: `/`, `/login`, `/register`
-- **bytebank-app** (porta 3001) — rotas autenticadas: `/transactions`
-
-A home faz proxy das rotas autenticadas para o app. A sessão é compartilhada por cookie JWT. Cada zona tem seu próprio store Redux; tipos e componentes são autossuficientes por zona.
-
-O **BFF** (Route Handlers do Next.js) conversa com o backend e nunca expõe o token ou o segredo da guarda ao navegador.
-
-Rotas sem página (como o item “Configurações” do menu) usam o `not-found.tsx` customizado da home.
 
 ---
 
 ## Testes e qualidade
 
 ```bash
-npm run lint         # ESLint + fronteiras de domínio
-npm run typecheck    # TypeScript em todos os workspaces
-npm test             # Jest (107 testes)
-npm run build:home   # build de produção da home
-npm run build:app    # build de produção do app
+npm run lint
+npm run typecheck
+npm test
+npm run build:home
+npm run build:app
+npm run build-storybook
 ```
 
-O CI (`.github/workflows/security.yml`) roda lint, typecheck, testes, builds, `npm audit --omit=dev`, gitleaks e CodeQL.
+O que é testado:
+
+- domínio e casos de uso em `packages/core` (saldo, distribuição, sugestão de categoria);
+- Route Handlers do BFF (login, register, account, transactions) e o helper de erro;
+- hooks e pipeline RxJS da busca;
+- serializers que mascaram cartão e removem dados sensíveis.
+
+O que não é testado por Jest: componentes visuais além das stories do Storybook. Não há meta de 100% de cobertura; `npm run test:coverage` mostra o número atual. `npm run lint:boundaries` falha se o domínio importar apresentação ou infraestrutura.
+
+O CI roda lint, typecheck, testes e builds nos dois workflows. O `security.yml` (push/PR) roda também `build-storybook`, `npm audit --omit=dev`, gitleaks e CodeQL; o `deploy.yml` (push para `main`) roda `build-storybook` antes do deploy.
+
+---
+
+## Deploy
+
+- **Home e app:** Vercel, em dois projetos independentes. A home é a entrada:
+  [bytebank-home-fiap.vercel.app](https://bytebank-home-fiap.vercel.app).
+- **App:** [bytebank-app-steel.vercel.app](https://bytebank-app-steel.vercel.app), acessado pelos rewrites da home.
+- **Backend:** Render (Docker), atrás da guarda nginx. A guarda é a única porta pública; o backend não é exposto.
+
+Como o cookie funciona entre as zonas: a home reescreve `/api/*` para o app. O BFF grava o cookie `bytebank_session` na origem da home; nas requisições seguintes o navegador envia esse cookie, a home repassa ao app e o BFF o abre no servidor. O JWT nunca aparece no JavaScript.
+
+Use a **URL da home** como entrada. Acessar o app diretamente não compartilha a sessão da home.
+
+O Render (plano free) hiberna após inatividade: a primeira requisição pode levar 30–45 s e o banco em memória é zerado. Para avaliar, reaqueça e crie uma conta em `/register` na home; não há conta pronta.
+
+---
+
+## Evidências
+
+- **Testes:** `npm test` → 25 suítes, 107 testes passando.
+- **Cookie:** DevTools → Application → Cookies → `bytebank_session` com `HttpOnly` e `SameSite=Lax`. O login responde apenas `{ "authenticated": true }`; nenhum token vai para o navegador.
+- **Mascaramento:** a resposta de `/api/account` traz `cards[].last4`, sem `number` e sem `cvc`.
+- **Performance:** Lighthouse antes/depois na seção [Performance](#performance).
+- **Storybook:** `npm run build-storybook` verde (6 stories em app + `packages/ui`).
+- **Vídeo (≤ 5 min):** pendente de gravação.
 
 ---
 
@@ -161,11 +265,25 @@ O ganho real vem de tirar o chunk do Recharts do caminho crítico. Como os gráf
 
 ## Limitações conhecidas
 
-- **Backend de terceiros:** a API fornecida não pode ser alterada. Por isso ela roda em `node:18-bullseye` (Node 18 e Debian 11 já em fim de vida) e recebe as vulnerabilidades herdadas da imagem base. O backend também mantém `GET /user` público e senhas em texto; a guarda bloqueia esse dump. Mitigação: o backend não é exposto diretamente; uma guarda nginx bloqueia rotas sensíveis, exige segredo do BFF e o container roda como usuário sem privilégios (uid 10001).
+- **Backend de terceiros:** a API fornecida não pode ser alterada. Por isso ela roda em `node:18-bullseye` (Node 18 e Debian 11 já em fim de vida) e recebe as vulnerabilidades herdadas da imagem base. O backend também mantém `GET /user` público e senhas em texto; a guarda bloqueia esse dump (404). Mitigação: o backend não é exposto diretamente; uma guarda nginx bloqueia rotas sensíveis, exige segredo do BFF e o container roda como usuário sem privilégios (uid 10001).
+- **JWT e sessão:** o JWT real do backend dura 12 h, mas a sessão do BFF expira em 20 min.
+- **Swagger:** `/docs` não é público; a guarda responde 404.
 - **Upload de anexo** é feito por URL, não por arquivo binário (limitação da API).
 - **Categoria de transação** é apenas sugerida no cliente; a API não possui o campo.
 - **Cold start:** o Render (plano free) hiberna após inatividade. A primeira requisição pode levar 30–45 s. O BFF espera até 45 s e as telas de login/cadastro avisam que o servidor está acordando.
-- **Banco em memória:** os dados são perdidos na hibernação; use o seed para recriar a conta demo.
-- **Hot reload:** o loop de Fast Refresh ocorre apenas em `npm run dev`; o build de produção e o Docker não são afetados. Para avaliar, use `docker compose up --build` ou `next start`.
+- **Banco em memória:** os dados são perdidos na hibernação; crie a conta novamente em `/register` após o cold start.
+- **Hot reload:** o loop de Fast Refresh ocorre apenas em `npm run dev`; o build de produção e o compose de produção não são afetados.
+- **RAM no desenvolvimento:** em hosts com ~2 GB, o `next dev` com Turbopack pode registrar `Out of memory` ao persistir cache. As rotas continuam respondendo, mas para avaliar use o build de produção ou o compose de produção.
 - **Vulnerabilidades de desenvolvimento:** `npm audit --omit=dev` retorna **0**. O restante (moderado/baixo) está em ferramentas de build e teste (Jest, ESLint, Storybook/Vite) e não entra no runtime de produção. Atualizações *major* dessas ferramentas ficam para depois da entrega.
 - **GitHub Actions:** alguns workflows ainda usam actions que rodam em Node 20 (depreciado). As atualizações estão abertas como PRs do Dependabot e devem ser mergeadas uma a uma, com CI verde.
+
+---
+
+## Próximos passos
+
+- Rate limiting na guarda/proxy e comparação do segredo em tempo constante.
+- CSP com nonce.
+- Rate limiting no BFF.
+- Testes E2E com Playwright.
+- Observabilidade (logs estruturados e métricas).
+- Investigar o loop de Fast Refresh em `next dev` (só desenvolvimento; não bloqueia a entrega).

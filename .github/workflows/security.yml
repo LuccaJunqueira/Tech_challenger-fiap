@@ -36,6 +36,7 @@ jobs:
           SESSION_SECRET: ci-placeholder-32-caracteres-000000
           ALLOWED_ORIGINS: http://localhost:3000,http://localhost:3001
           INTERNAL_API_URL: http://backend:3000
+      - run: npm run build-storybook
 
   audit:
     runs-on: ubuntu-latest
