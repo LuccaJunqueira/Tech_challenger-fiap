@@ -1,5 +1,5 @@
 import type { AuthState } from "@bytebank/types";
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
 import { apiSlice } from "./apiSlice";
 
@@ -22,14 +22,6 @@ const authSlice = createSlice({
       state.user = null;
       state.isAuthenticated = false;
       state.error = null;
-    },
-
-    setAuthLoading: (state, action: PayloadAction<boolean>) => {
-      state.loading = action.payload;
-    },
-
-    setAuthError: (state, action: PayloadAction<string | null>) => {
-      state.error = action.payload;
     },
   },
 
@@ -61,16 +53,9 @@ const authSlice = createSlice({
   },
 });
 
-export const { setAuthenticated, logout, setAuthLoading, setAuthError } =
-  authSlice.actions;
+export const { setAuthenticated, logout } = authSlice.actions;
 
-export const selectCurrentUser = (state: { auth: AuthState }) =>
-  state.auth.user;
 export const selectIsAuthenticated = (state: { auth: AuthState }) =>
   state.auth.isAuthenticated;
-export const selectAuthLoading = (state: { auth: AuthState }) =>
-  state.auth.loading;
-export const selectAuthError = (state: { auth: AuthState }) =>
-  state.auth.error;
 
 export default authSlice.reducer;

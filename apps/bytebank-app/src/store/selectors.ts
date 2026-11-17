@@ -21,12 +21,3 @@ export const selectTransactionHistory = createSelector(
       [t.from, t.to].filter((value): value is string => Boolean(value?.trim())),
     ),
 );
-
-export const selectAccountStatus = createSelector(
-  [selectAccountQuery],
-  (q) => ({
-    isLoading: q.isLoading,
-    isFetching: q.status === "pending",
-    error: q.error,
-  }),
-);

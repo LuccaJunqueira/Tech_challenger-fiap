@@ -23,7 +23,6 @@ export type AccountOverview = AccountSnapshot & {
 
 export function buildAccountOverview(
   snapshot: AccountSnapshot,
-  now = new Date(),
 ): AccountOverview {
   const transactions = [...snapshot.transactions].sort(
     (a, b) => a.date.getTime() - b.date.getTime(),
