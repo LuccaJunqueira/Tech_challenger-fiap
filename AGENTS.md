@@ -10,74 +10,66 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Estrutura
 
 ```
-tech-challenger01/
-├── package.json              ← Root monorepo (workspaces, orchestrates both apps)
+tech-challenger02/
+├── package.json              → Root monorepo (workspaces, orquestra as duas zonas)
 ├── apps/
-│   ├── bytebank-home/        ← Zona host (rotas públicas, porta 3000)
-│   │   ├── src/app/          ← /, /login, /register
-│   │   ├── src/store/        ← authSlice + apiSlice (login/register only)
-│   │   └── next.config.ts    ← rewrites → bytebank-app
-│   └── bytebank-app/         ← Zona remota (rotas autenticadas, porta 3001)
-│       ├── src/app/          ← /transactions, /transactions/new, /transactions/[id]/edit
-│       ├── src/store/        ← authSlice + accountSlice + apiSlice (completo)
-│       └── next.config.ts    ← assetPrefix para produção
-├── backend/                  ← API (tech-challenge-2)
-├── docs/                     ← Documentação
-└── docker-compose.yml        ← 3 serviços: bytebank-home, bytebank-app, backend
+│   ├── bytebank-home/        → Zona host (rotas públicas, porta 3000)
+│   │   ├── src/app/          → /, /login, /register
+│   │   ├── src/store/        → authSlice + apiSlice (login/register)
+│   │   └── next.config.ts    → rewrites → bytebank-app
+│   └── bytebank-app/         → Zona remota (rotas autenticadas, porta 3001)
+│       ├── src/app/          → /transactions, /transactions/new, /transactions/[id]/edit, /api/*
+│       ├── src/store/        → authSlice + apiSlice (RTK Query)
+│       └── next.config.ts    → assetPrefix para produção
+├── packages/
+│   ├── core/                 → domínio + casos de uso (sem Next/React)
+│   ├── types/                → tipos compartilhados
+│   └── ui/                   → componentes visuais
+├── backend/                  → API de terceiros (não alterar)
+├── infra/backend-proxy/      → guarda nginx + backend embutido (build próprio)
+└── docker-compose.yml        → home, app e backend
 ```
 
 ## Scripts
 
-- `npm run dev` — Inicia ambas as zonas + backend em paralelo (via concurrently)
-- `npm run dev:home` — Apenas bytebank-home (porta 3000)
-- `npm run dev:app` — Apenas bytebank-app (porta 3001)
-- `npm run build:home` — Build produção bytebank-home
-- `npm run build:app` — Build produção bytebank-app
-- `npm run lint` — Lint em todos os workspaces
+- `npm run dev` — inicia home + app (não sobe o backend)
+- `npm run dev:backend` — sobe o backend na porta 3002
+- `npm run dev:home` / `npm run dev:app` — apenas uma zona
+- `npm run build:home` / `npm run build:app` — builds de produção
+- `npm run lint` — ESLint + fronteiras de domínio
+- `npm run typecheck` — TypeScript em todos os workspaces
 
 ## Comunicação entre zonas
 
-- Autenticação via cookie JWT (`jwt_token`) — mesmo cookie utilizado por ambas as zonas
-- bytebank-home (host) faz proxy de `/transactions/*` para bytebank-app via rewrites
-- Em dev: bytebank-home (3000) → bytebank-app (3001)
-- Em produção: assetPrefix do bytebank-app deve corresponder ao rewrite path
+- Sessão via cookie selado `bytebank_session` (`iron-session`, HttpOnly, SameSite=Lax, TTL 20 min). O JWT real do backend fica dentro do cookie e nunca chega ao JavaScript.
+- A home (host) faz proxy de `/transactions/*` e `/transactions-static/*` para o app via rewrites.
+- Em dev: home (3000) → app (3001).
+- Em produção: `assetPrefix` do app deve corresponder ao rewrite path.
 
 ## Regras
 
-- Store Redux é independente em cada zona (não compartilhada)
-- Tipos e componentes são duplicados por zona (cada app é autossuficiente)
-- Backend NÃO deve ser modificado
+- Store Redux é independente em cada zona (não compartilhada).
+- O BFF (`apps/bytebank-app/src/app/api/*`) é a única porta para o backend.
+- `backend/` NÃO deve ser modificado.
 <!-- END:monorepo-multizones -->
 
 <!-- BEGIN:redux-store -->
 # Redux Store — bytebank-app
 
 ## Store structure (`apps/bytebank-app/src/store/`)
-- `index.ts` — `configureStore` with `auth`, `account`, `api` reducers + `apiSlice.middleware`
-- `hooks.ts` — typed `useAppDispatch` and `useAppSelector`
-- `authSlice.ts` — token, user, isAuthenticated; reducers `setCredentials`/`logout`; extraReducers for `login.*` matchers; usa js-cookie (não localStorage)
-- `accountSlice.ts` — accounts, transactions, cards, loading, error; extraReducers for `getAccount.*` matchers
-- `apiSlice.ts` — RTK Query; endpoints `login`, `register`, `getAccount`, `createTransaction`, `getStatement`, `updateTransaction`, `deleteTransaction`; `transformResponse` extracts `.result` from `ApiEnvelope<T>`; base query lê JWT do cookie (js-cookie); 401 dispatches `{ type: 'auth/logout' }` (string action to avoid circular dep)
-- `constants.ts` — `JWT_COOKIE_NAME` e `getJwtCookieOptions()`
-- `StoreProvider.tsx` — client wrapper `<Provider store={store}>`
-- `RootState` = `ReturnType<typeof store.getState>` (never manual)
-- `NEXT_PUBLIC_API_URL=http://localhost:3001` in `.env.local`
+
+- `index.ts` — `configureStore` com `auth` + `api` + `apiSlice.middleware`; `RootState` derivado do reducer.
+- `hooks.ts` — `useAppDispatch` e `useAppSelector` tipados.
+- `authSlice.ts` — `isAuthenticated`, `setAuthenticated`, `logout`, `selectIsAuthenticated`. Não guarda token.
+- `apiSlice.ts` — RTK Query com `baseUrl: "/api"`; endpoints `getAccount`, `createTransaction`, `updateTransaction`, `deleteTransaction`. Em 401, `baseQueryWithReauth` despacha `{ type: "auth/logout" }` (string, para evitar dependência circular) e `api/resetApiState`.
+- `selectors.ts` — `selectAccountOverview`, `selectTransactions`, `selectTransactionHistory`.
+- `serverSnapshot.ts` — semeia o cache de `getAccount` no servidor para o `preloadedState`.
+- `StoreProvider.tsx` — client wrapper `<Provider store={store}>`.
 
 ## Key decisions
-- **No circular deps**: `baseQueryWithReauth` dispatches string action `{ type: 'auth/logout' }` instead of importing `logout` action creator; `authSlice` and `accountSlice` import `apiSlice` for matchers (one-way dependency)
-- **Transform**: All endpoints unwrap `ApiEnvelope.result` via `transformResponse`
-- **Tag system**: `getAccount` provides `['Account']`; `createTransaction` invalidates `['Account', 'Transactions']`; `getStatement` provides `['Transactions']`
-- **Cookie auth**: JWT armazenado em cookie (`jwt_token`), não localStorage — necessário para SSR e Multizones
+
+- **Sem token no cliente:** a credencial fica no cookie selado; o navegador só chama `/api/*` na mesma origem.
+- **Sem `accountSlice`:** RTK Query é a fonte única do estado do servidor.
+- **Sem dependência circular:** o 401 usa a action por string `{ type: "auth/logout" }`.
+- **Cache privado:** rotas de transação e `/api/*` respondem com `Cache-Control: private, no-store`.
 <!-- END:redux-store -->
-
-<!-- BEGIN:mentor-mode -->
-# Modo mentor (Fase 4)
-
-- **Não implemente a etapa inteira.** Antes de qualquer código, explique a abordagem, liste arquivos/riscos e **pergunte**.
-- Gere **no máximo** o trecho que eu pedir explicitamente.
-- **Nunca** altere `backend/`.
-- **Não** instale dependência sem aprovação explícita.
-- **Não** altere `.gitignore` nem versione `docs/` (decisão 2).
-- Decisões de arquitetura/segurança são minhas; em dúvida, pare e pergunte.
-- Documento canônico: `docs/fase 4/implementação.md`.
-<!-- END:mentor-mode -->

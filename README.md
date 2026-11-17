@@ -72,7 +72,7 @@ Navegador
 | Token | JWT de 12 h só no servidor; o navegador nunca vê o token |
 | Estado do servidor | RTK Query; `accountSlice` removido |
 | RxJS | Só na apresentação (busca com debounce) |
-| Testes | Jest para app/BFF; Vitest/addon-vitest só para Storybook |
+| Testes | Jest para app/BFF; Storybook é catálogo visual, sem suíte Vitest |
 | Backend imutável | BFF mascara cartão (só `last4`) e não devolve senha |
 | Guarda | nginx bloqueia `GET /user` e `/docs` (404), exige `x-bff-secret` e roda non-root |
 | Documentação | `docs/` não versionado; as decisões que o avaliador precisa estão neste README |
@@ -266,6 +266,7 @@ O ganho real vem de tirar o chunk do Recharts do caminho crítico. Como os gráf
 ## Limitações conhecidas
 
 - **Backend de terceiros:** a API fornecida não pode ser alterada. Por isso ela roda em `node:18-bullseye` (Node 18 e Debian 11 já em fim de vida) e recebe as vulnerabilidades herdadas da imagem base. O backend também mantém `GET /user` público e senhas em texto; a guarda bloqueia esse dump (404). Mitigação: o backend não é exposto diretamente; uma guarda nginx bloqueia rotas sensíveis, exige segredo do BFF e o container roda como usuário sem privilégios (uid 10001).
+- **JWT herdado:** o backend de terceiros assina o token com um segredo fixo no código (`tech-challenge`). Como o backend é imutável, a proteção real é a guarda nginx + `BACKEND_PROXY_SECRET`; o token nunca chega ao navegador, pois fica dentro do cookie selado do BFF.
 - **JWT e sessão:** o JWT real do backend dura 12 h, mas a sessão do BFF expira em 20 min.
 - **Swagger:** `/docs` não é público; a guarda responde 404.
 - **Upload de anexo** é feito por URL, não por arquivo binário (limitação da API).
