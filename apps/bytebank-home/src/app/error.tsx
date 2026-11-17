@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Header } from "@bytebank/ui";
+import { Button, getErrorMessage, Header } from "@bytebank/ui";
 import { useRouter } from "next/navigation";
 
 export default function Error({
@@ -25,7 +25,7 @@ export default function Error({
               Algo deu errado
             </h2>
             <p className="text-sm text-muted-foreground">
-              {error.message || 'Erro desconhecido'}
+              {getErrorMessage(error, { fallback: "Erro desconhecido" })}
             </p>
           </div>
         </div>

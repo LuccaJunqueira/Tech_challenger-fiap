@@ -19,11 +19,12 @@ export function AttachmentFields({
 
   const handleUrlChange = (value: string) => {
     onChange("urlAnexo", value);
-    if (value.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
-      setPreview(value);
-    } else {
-      setPreview(null);
-    }
+
+    const trimmed = value.trim();
+    const isHttpsImage =
+      /^https:\/\/\S+\.(jpeg|jpg|gif|png|webp)$/i.test(trimmed);
+
+    setPreview(isHttpsImage ? trimmed : null);
   };
 
   return (

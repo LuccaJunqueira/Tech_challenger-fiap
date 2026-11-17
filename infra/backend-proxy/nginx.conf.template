@@ -4,8 +4,7 @@
 
 map "$request_method:$uri" $deny_user_dump {
     default 0;
-    "GET:/user" 1;
-    "GET:/user/" 1;
+    "~*^GET:/user/?$" 1;
 }
 
 server {
@@ -22,8 +21,8 @@ server {
         access_log off;
     }
 
-    # Swagger nunca é público.
-    location ^~ /docs {
+    # Swagger nunca é público (case-insensitive).
+    location ~* ^/docs {
         return 404;
     }
 
