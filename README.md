@@ -20,8 +20,8 @@ https://bytebank-home-fiap.vercel.app
 ### Localmente, com o compose de produção (caminho secundário)
 
 ```bash
-git clone <url-do-repositorio>
-cd tech-challenger02
+git clone "https://github.com/LuccaJunqueira/Tech_challenger-fiap.git"
+cd Tech_challenger-fiap
 cp .env.example .env
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"  # valor para SESSION_SECRET
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"  # valor para BACKEND_PROXY_SECRET
@@ -72,4 +72,6 @@ Esperado: lint, typecheck e build limpos; **107 testes passando** (25 suítes); 
 - Backend de terceiros (imutável): `GET /user` público, senhas em texto, JWT com segredo fixo e Node 18/Debian 11 fora de suporte; a guarda bloqueia as rotas sensíveis.
 - Banco em memória e cold start do Render free (até ~45 s no 1º acesso).
 - Categoria: não é salva pelo backend; a sugestão usa só as transações existentes.
+- Datas: filtro por período personalizado ainda interpreta as datas em UTC; a data da transação não é editável.
+- Anexo: apenas por URL https.
 - Sem rate limit e sem CSP.
