@@ -168,7 +168,13 @@ export default function NewTransactionPage() {
               Data
             </label>
             <p className="text-foreground text-sm">
-              {isClient ? new Date().toLocaleDateString("pt-BR") : <>&nbsp;</>}
+              {isClient ? (
+                new Date().toLocaleDateString("pt-BR", {
+                  timeZone: "America/Sao_Paulo",
+                })
+              ) : (
+                <>&nbsp;</>
+              )}
             </p>
           </div>
 

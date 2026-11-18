@@ -115,6 +115,7 @@ export default async function TransactionsPage({
           <h1 className="text-2xl font-bold text-foreground">Visão geral</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {new Date().toLocaleDateString("pt-BR", {
+              timeZone: "America/Sao_Paulo",
               weekday: "short",
               day: "2-digit",
               month: "short",
@@ -221,7 +222,9 @@ export default async function TransactionsPage({
                   </p>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className="text-xs text-muted-foreground">
-                      {new Date(t.date).toLocaleDateString("pt-BR")}
+                      {new Date(t.date).toLocaleDateString("pt-BR", {
+                        timeZone: "America/Sao_Paulo",
+                      })}
                     </span>
                     <Badge variant={badgeVariant[t.type]}>
                       {badgeLabel[t.type]}

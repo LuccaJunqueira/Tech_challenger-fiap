@@ -52,6 +52,7 @@ export function BalanceLineChart({
             stroke="var(--color-muted-foreground)"
             tickFormatter={(value) =>
               new Date(value).toLocaleDateString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
                 month: "short",
                 day: "numeric",
               })

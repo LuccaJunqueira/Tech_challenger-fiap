@@ -161,7 +161,9 @@ export function EditForm({
               Data
             </label>
             <p className="text-foreground text-sm">
-              {new Date(transaction.date).toLocaleDateString("pt-BR")}
+              {new Date(transaction.date).toLocaleDateString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
+              })}
             </p>
           </div>
 
